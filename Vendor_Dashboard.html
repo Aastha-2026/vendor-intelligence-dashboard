@@ -151,9 +151,9 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .tbdg.hi{color:var(--hc)} .tbdg.hi .tdot{background:var(--hc)}
 .tbdg.md{color:var(--mc)} .tbdg.md .tdot{background:var(--mc)}
 .tbdg.lo{color:var(--lc)} .tbdg.lo .tdot{background:var(--lc)}
-.det-btn{font-size:10px;color:var(--wb);font-weight:600;cursor:pointer;border:none;background:none;font-family:inherit;padding:4px 8px;border-radius:4px;border:1px solid var(--wm)}
+.det-btn{font-size:10px;color:var(--wb);font-weight:600;cursor:pointer;background:none;font-family:inherit;padding:3px 9px;border-radius:4px;border:1px solid var(--wm);white-space:nowrap}
 .det-btn:hover{background:var(--wl)}
-.vc-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;padding-top:6px;border-top:1px solid var(--g1);justify-content:space-between}
+.vc-actions{display:flex;gap:5px;margin-top:7px;padding-top:6px;border-top:1px solid var(--g1)}
 .act-btn{padding:3px 9px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:4px;text-decoration:none;white-space:nowrap}
 .act-btn.web{color:var(--wd);border-color:var(--wm);background:var(--wl)}
 .act-btn.web:hover{background:var(--wb);color:#fff;border-color:var(--wb)}
@@ -223,7 +223,7 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .mo-acts{display:flex;gap:9px;margin-top:18px;padding-top:13px;border-top:1px solid var(--g2);flex-wrap:wrap;justify-content:space-between}
 .btn-p{flex:1;min-width:120px;padding:10px 13px;background:var(--wb);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .btn-p:hover{background:var(--wd)}
-.btn-s{padding:10px 13px;background:#fff;color:var(--wb);border:1.5px solid var(--wb);border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.btn-s{flex:1;padding:10px 13px;background:#fff;color:var(--wb);border:1.5px solid var(--wb);border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
 .btn-s:hover{background:var(--wl)}
 .btn-y{padding:10px 13px;background:var(--wy);color:#1D1D1D;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .spbar{height:7px;background:var(--g2);border-radius:4px;overflow:hidden;margin-top:7px}
@@ -810,8 +810,8 @@ function renderVendors(){
     const wUrl=websiteSearchURL(v);
     const stUrl=statusCheckURL(v);
     const closedActionBtn=isClosed
-      ?`<button class="act-btn unmark-closed" onclick="event.stopPropagation();unmarkClosed('${sn}')">&#9654; Reactivate</button>`
-      :`<button class="act-btn mark-closed" onclick="event.stopPropagation();if(confirm('Mark ${dispNm} as PERMANENTLY CLOSED?'))markClosed('${sn}')">&#128683; Mark Closed</button>`;
+      ?`<button class="act-btn unmark-closed" onclick="event.stopPropagation();unmarkClosed('${sn}')" style="flex:1;justify-content:center">&#9654; Reactivate</button>`
+      :`<button class="act-btn mark-closed" onclick="event.stopPropagation();if(confirm('Mark ${dispNm} as PERMANENTLY CLOSED?'))markClosed('${sn}')" style="flex:1;justify-content:center">&#128683; Mark Closed</button>`;
     return `<div class="vcard ${ec}${isSelected?' rfp-selected':''}${isClosed?' closed':''}" id="${vcId}">
 <label class="rfp-check-wrap"><input type="checkbox" class="rfp-check" ${isSelected?'checked':''} ${rfpDisabled} onchange="toggleRFP('${sn}',this.checked)"><span class="rfp-check-lbl">Select for RFP</span></label>
 ${closedBanner}
@@ -820,10 +820,9 @@ ${closedBanner}
 <div class="vc-svcs" style="${closedDim}"><div class="vc-svcs-lbl" onclick="var l=this.nextElementSibling;var op=l.classList.toggle('svc-open');this.querySelector('.vc-svcs-lbl-arrow').textContent=op?'▴':'▾'">&#128295; Services &amp; Products Delivered<span class="vc-svcs-lbl-arrow">&#9662;</span></div><div class="vc-svcs-list">${svcChips}${moreBtn}${hiddenChips}${noSvcs}</div></div>
 <div class="vc-met" style="${closedDim}"><div class="met"><div class="met-v">${fmtV(v.totalPOValue)}</div><div class="met-l">Total PO Value (\u20B9)</div></div><div class="met"><div class="met-v">${v.orderCount}</div><div class="met-l">PO Orders</div></div><div class="met"><div class="met-v">${svcs.length}</div><div class="met-l">Service Items</div></div></div>
 <div class="vc-actions">
-  <a class="act-btn status" href="${stUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">&#128270; Check Status</a>
-  <button class="det-btn" onclick="openMo('${sn}')">&#128203; Full Profile \u2192</button>
-  <span style="flex:1"></span>
-  ${closedActionBtn}
+  <a class="act-btn status" href="${stUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="flex:1;justify-content:center">&#128270; Check Status</a>
+  <button class="det-btn" onclick="openMo('${sn}')" style="flex:1;text-align:center">&#128203; Full Profile &#8594;</button>
+  <span id="closed-btn-wrap-${vcId}" style="flex:1;display:flex">${closedActionBtn}</span>
 </div>
 </div>`;
   }).join('');
