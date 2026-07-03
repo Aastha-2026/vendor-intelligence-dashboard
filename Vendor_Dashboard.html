@@ -500,7 +500,7 @@ function unmarkClosed(vname){
 function websiteSearchURL(v){
   // First 2 words of name + primary service + "India official website"
   const words=(v._displayName||v.name).split(' ').slice(0,2).join(' ');
-  const svc=v.procurementCategory.split(',')[0].trim();
+  const svc=v.procurementCategory.trim();
   return `https://www.google.com/search?q=${encodeURIComponent('"'+words+'" '+svc+' India official website')}`;
 }
 function statusCheckURL(v){
@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 /* ---- CATEGORY SIDEBAR ---- */
 function buildCats(){
   const cm={};
-  VENDORS.forEach(v=>v.procurementCategory.split(',').forEach(c=>{c=c.trim();if(c)cm[c]=(cm[c]||0)+1;}));
+  VENDORS.forEach(v=>{const c=v.procurementCategory.trim();if(c)cm[c]=(cm[c]||0)+1;});
   const rows=[['\u{1F310} All Vendors',VENDORS.length,''],...Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([c,n])=>[(CICO[c]||'\u{1F4CC}')+' '+c,n,c])];
   const el=document.getElementById('catList');el.innerHTML='';
   rows.forEach(([lbl,cnt,cat],i)=>{
@@ -570,13 +570,13 @@ function showMRPanel(q){
 function clearSearch(){st.q='';setQ('');hideSugg();document.getElementById('sBanner').classList.remove('show');document.getElementById('mrPanel').classList.remove('show');renderVendors();}
 function showSugg(q){
   const d=document.getElementById('sugg');const ql=q.toLowerCase();st.fsi=-1;
-  const allC=[...new Set(VENDORS.flatMap(v=>v.procurementCategory.split(',').map(c=>c.trim()).filter(Boolean)))];
+  const allC=[...new Set(VENDORS.map(v=>v.procurementCategory.trim()).filter(Boolean))];
   const mC=allC.filter(c=>c.toLowerCase().includes(ql)).slice(0,4);
   const mV=VENDORS.filter(v=>v.name.toLowerCase().includes(ql)||v.serviceTypes.toLowerCase().includes(ql)||v.procurementCategory.toLowerCase().includes(ql)||v.procurementSubCategory.toLowerCase().includes(ql)||String(v.ids).includes(ql)||v.engagementLevel.toLowerCase().includes(ql)||v.tier.toLowerCase().includes(ql)||String(v.totalPOValue).includes(ql)||String(v.orderCount).includes(ql))
     .sort((a,b)=>{const ae={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1};return(ae[b.engagementLevel]||0)-(ae[a.engagementLevel]||0)||b.totalPOValue-a.totalPOValue;}).slice(0,8);
   let h='';
   if(mC.length){h+=`<div class="sugg-hd">Categories</div>`;mC.forEach(c=>{const n=VENDORS.filter(v=>v.procurementCategory.includes(c)).length;h+=`<div class="sugg-row" onclick="selCat('${c.replace(/'/g,"\\'")}')"><span class="sugg-ico">${CICO[c]||'\u{1F4CC}'}</span><div class="sugg-info"><div class="sugg-nm">${hlT(c,q)}</div><div class="sugg-mt">${n} vendors</div></div><span class="ebdg ot" style="font-size:9px">Category</span></div>`});}
-  if(mV.length){h+=`<div class="sugg-hd">Vendors in our database</div>`;mV.forEach(v=>{const ec=ECL[v.engagementLevel]||'ot';const cats=v.procurementCategory.split(',').slice(0,2).map(c=>c.trim()).join(', ');const snm=v.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");const dn=v._displayName||v.name;h+=`<div class="sugg-row" onclick="selVend('${snm}')"><span class="sugg-ico">\u{1F3ED}</span><div class="sugg-info"><div class="sugg-nm">${hlT(dn,q)}</div><div class="sugg-mt">${cats} &middot; \u20B9${fmtV(v.totalPOValue)} &middot; ${v.orderCount} orders</div></div><span class="ebdg ${ec}" style="font-size:9px">${ec==='sp'?'\u2B50 SP':ec==='rv'?'\u{1F501} RV':'\u{1F539} OT'}</span></div>`;});}
+  if(mV.length){h+=`<div class="sugg-hd">Vendors in our database</div>`;mV.forEach(v=>{const ec=ECL[v.engagementLevel]||'ot';const cats=v.procurementCategory.trim();const snm=v.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");const dn=v._displayName||v.name;h+=`<div class="sugg-row" onclick="selVend('${snm}')"><span class="sugg-ico">\u{1F3ED}</span><div class="sugg-info"><div class="sugg-nm">${hlT(dn,q)}</div><div class="sugg-mt">${cats} &middot; \u20B9${fmtV(v.totalPOValue)} &middot; ${v.orderCount} orders</div></div><span class="ebdg ${ec}" style="font-size:9px">${ec==='sp'?'\u2B50 SP':ec==='rv'?'\u{1F501} RV':'\u{1F539} OT'}</span></div>`;});}
   if(!h)h=`<div class="sugg-row" style="cursor:default;justify-content:center;padding:14px"><span style="color:var(--g5);font-size:12px">No empaneled matches &mdash; use Market Research below &#8595;</span></div>`;
   d.innerHTML=h;d.style.display='block';
 }
@@ -741,7 +741,7 @@ VENDORS.forEach(v=>{v._displayName=normName(v.name);});
 /* ---- FILTER LOGIC ---- */
 function getFiltered(){
   let l=[...VENDORS];
-  if(st.cat)l=l.filter(v=>v.procurementCategory.split(',').some(c=>c.trim()===st.cat));
+  if(st.cat)l=l.filter(v=>v.procurementCategory.trim()===st.cat);
   if(st.q){const ql=st.q.toLowerCase();l=l.filter(v=>v.name.toLowerCase().includes(ql)||v.serviceTypes.toLowerCase().includes(ql)||v.procurementCategory.toLowerCase().includes(ql)||v.procurementSubCategory.toLowerCase().includes(ql)||String(v.ids).includes(ql)||v.engagementLevel.toLowerCase().includes(ql)||v.tier.toLowerCase().includes(ql)||String(v.totalPOValue).includes(ql)||String(v.orderCount).includes(ql)||String(v.ids).includes(ql));}
   const ea=['sp','rv','ot'].filter(f=>st.flt.has(f));if(ea.length){const m={sp:'Strategic Partner',rv:'Repeat Vendor',ot:'One-Time Vendor'};l=l.filter(v=>ea.some(f=>v.engagementLevel===m[f]));}
   const ta=['hi','md','lo'].filter(f=>st.flt.has(f));if(ta.length){const m={hi:'HIGH',md:'MEDIUM',lo:'LOW'};l=l.filter(v=>ta.some(f=>v.tier===m[f]));}
@@ -762,7 +762,7 @@ function renderVendors(){
   const rv=l.filter(v=>v.engagementLevel==='Repeat Vendor').length;
   const ot=l.filter(v=>v.engagementLevel==='One-Time Vendor').length;
   const tv=l.reduce((s,v)=>s+v.totalPOValue,0);
-  const cats=new Set(l.flatMap(v=>v.procurementCategory.split(',').map(c=>c.trim()).filter(Boolean)));
+  const cats=new Set(l.map(v=>v.procurementCategory.trim()).filter(Boolean));
   document.getElementById('stTotal').textContent=l.length;
   document.getElementById('stSP').textContent=sp;
   document.getElementById('stRV').textContent=rv;
@@ -784,8 +784,8 @@ function renderVendors(){
   const cardsHtml=l.map(v=>{
     const ec=ECL[v.engagementLevel]||'ot';
     const tc=TCL[v.tier]||'lo';
-    const cats2=v.procurementCategory.split(',').map(c=>c.trim()).filter(Boolean);
-    const sc=v.procurementSubCategory.split(',').map(c=>c.trim()).filter(Boolean);
+    const cats2=[v.procurementCategory.trim()].filter(Boolean);
+    const sc=[v.procurementSubCategory.trim()].filter(Boolean);
     const svcs=filterServices(v.serviceTypes);
     const ini=v.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'V';
     const cT=cats2.map(c=>`<span class="ctag">${CICO[c]||''} ${c}</span>`).join('');
@@ -852,7 +852,7 @@ function generateRFP(){
   const selected=VENDORS.filter(v=>st.rfp.has(v.name));
   if(!selected.length)return;
   const date=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
-  const cats=[...new Set(selected.flatMap(v=>v.procurementCategory.split(',').map(c=>c.trim())))].filter(Boolean).slice(0,3).join(', ');
+  const cats=[...new Set(selected.map(v=>v.procurementCategory.trim()))].filter(Boolean).slice(0,3).join(', ');
   const vendorList=selected.map((v,i)=>`   ${i+1}. ${v.name} (ID: ${v.ids})`).join('\n');
   const template=`Subject: Request for Proposal (RFP) — ${cats || 'Services'} | Walmart India
 
@@ -932,8 +932,8 @@ function openMo(nm){
   document.getElementById('moTier').innerHTML=`<span style="font-weight:700;color:${tc==='hi'?'var(--hc)':tc==='md'?'var(--mc)':'var(--lc)'}">${v.tier}</span>`;
   document.getElementById('moEngL').textContent=v.engagementLevel;
   const f=document.getElementById('spFill');f.style.background=tc==='hi'?'var(--hc)':tc==='md'?'var(--mc)':'var(--lc)';setTimeout(()=>f.style.width=sp2+'%',60);
-  const cats2=v.procurementCategory.split(',').map(c=>c.trim()).filter(Boolean);
-  const sc=v.procurementSubCategory.split(',').map(c=>c.trim()).filter(Boolean);
+  const cats2=[v.procurementCategory.trim()].filter(Boolean);
+  const sc=[v.procurementSubCategory.trim()].filter(Boolean);
   document.getElementById('moCats').innerHTML=cats2.map(c=>`<span class="ctag" style="font-size:11px;padding:4px 10px">${CICO[c]||'\u{1F4CC}'} ${c}</span>`).join('')+sc.map(s=>`<span class="sctag" style="font-size:11px;padding:4px 10px">\u2192 ${s}</span>`).join('');
   const sv=filterServices(v.serviceTypes).slice(0,20);
   document.getElementById('moSvcs').innerHTML=sv.map(s=>`<div class="svc-it">${s}</div>`).join('')||'<div class="svc-it" style="color:var(--g5)">No service history on file</div>';
