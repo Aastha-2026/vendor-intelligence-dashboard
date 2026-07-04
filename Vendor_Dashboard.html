@@ -119,7 +119,7 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .vc-av{width:36px;height:36px;border-radius:8px;background:var(--wl);color:var(--wb);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-transform:uppercase}
 .vc-inf{flex:1;min-width:0}
 .vc-nm{font-size:16px;font-weight:700;color:var(--g7);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-.vc-nm:hover{color:var(--wb);text-decoration:underline}.vc-website-ico{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:3px;background:var(--wl);border:1px solid var(--wm);color:var(--wb);font-size:9px;text-decoration:none;margin-left:5px;vertical-align:middle;flex-shrink:0;transition:all .15s;cursor:pointer}.vc-website-ico:hover{background:var(--wb);color:#fff;border-color:var(--wb)}
+.vc-nm:hover{color:var(--wb);text-decoration:underline}.vc-website-ico{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:var(--wl);border:1px solid var(--wm);color:var(--wb);font-size:10px;text-decoration:none;flex-shrink:0;transition:all .15s;cursor:pointer;vertical-align:middle}.vc-website-ico:hover{background:var(--wb);color:#fff;border-color:var(--wb);transform:scale(1.1);box-shadow:0 2px 6px rgba(0,113,206,.3)}
 .vc-id{font-size:9px;color:var(--g5);margin-top:2px}
 .ebdg{padding:3px 6px;border-radius:9px;font-size:9px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px}
 .ebdg.sp{background:var(--sl);color:var(--sc)} .ebdg.rv{background:var(--rl);color:var(--rc)} .ebdg.ot{background:var(--ol);color:var(--oc)}
@@ -151,13 +151,13 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .tbdg.hi{color:var(--hc)} .tbdg.hi .tdot{background:var(--hc)}
 .tbdg.md{color:var(--mc)} .tbdg.md .tdot{background:var(--mc)}
 .tbdg.lo{color:var(--lc)} .tbdg.lo .tdot{background:var(--lc)}
-.det-btn{font-size:10px;color:var(--wb);font-weight:600;cursor:pointer;background:none;font-family:inherit;padding:3px 9px;border-radius:4px;border:1px solid var(--wm);white-space:nowrap}
-.det-btn:hover{background:var(--wl)}
-.vc-actions{display:flex;gap:5px;margin-top:7px;padding-top:6px;border-top:1px solid var(--g1)}
+.det-btn{font-size:10px;color:var(--wb);font-weight:700;cursor:pointer;background:var(--wl);font-family:inherit;padding:5px 10px;border-radius:6px;border:1px solid var(--wm);white-space:nowrap;transition:all .15s}
+.det-btn:hover{background:var(--wb);color:#fff;border-color:var(--wb)}
+.vc-actions{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--g2)}
 .act-btn{padding:3px 9px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:4px;text-decoration:none;white-space:nowrap}
 .act-btn.web{color:var(--wd);border-color:var(--wm);background:var(--wl)}
 .act-btn.web:hover{background:var(--wb);color:#fff;border-color:var(--wb)}
-.act-btn.status{color:#7B1FA2;border-color:#CE93D8;background:#F3E5F5}
+
 .act-btn.status:hover{background:#7B1FA2;color:#fff;border-color:#7B1FA2}
 .act-btn.mark-closed{color:var(--hc);border-color:var(--closed-light);background:var(--closed-bg)}
 .act-btn.mark-closed:hover{background:var(--hc);color:#fff;border-color:var(--hc)}
@@ -220,7 +220,7 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .svc-list{display:flex;flex-direction:column;gap:4px}
 .svc-it{display:flex;align-items:flex-start;gap:7px;padding:6px 9px;background:var(--g0);border-radius:5px;font-size:11px;color:var(--g7);line-height:1.4}
 .svc-it::before{content:'✓';color:var(--sc);font-weight:700;font-size:10px;flex-shrink:0;margin-top:1px}
-.mo-acts{display:flex;gap:9px;margin-top:18px;padding-top:13px;border-top:1px solid var(--g2);flex-wrap:wrap;justify-content:space-between}
+.mo-acts{display:flex;gap:9px;margin-top:18px;padding-top:13px;border-top:1px solid var(--g2)}
 .btn-p{flex:1;min-width:120px;padding:10px 13px;background:var(--wb);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .btn-p:hover{background:var(--wd)}
 .btn-s{flex:1;padding:10px 13px;background:#fff;color:var(--wb);border:1.5px solid var(--wb);border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
@@ -431,10 +431,9 @@ mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-wei
         <div class="svc-list" id="moSvcs"></div>
       </div>
       <div class="mo-acts">
-        <button class="btn-p" id="moRFPBtn">&#9744; Add to RFP</button>
-        <button class="btn-s" id="moStatusBtn" style="color:#7B1FA2;border-color:#CE93D8">&#128270; Check Status</button>
-        <button class="btn-p" id="moCloseToggleBtn" style="background:var(--hc)">&#128683; Mark Closed</button>
-        <button class="btn-s" onclick="closeModalD()">Close</button>
+        <button class="btn-p" id="moRFPBtn" style="flex:1">&#9744; Add to RFP</button>
+        <button class="btn-p" id="moCloseToggleBtn" style="flex:1;background:var(--hc)">&#128683; Mark Closed</button>
+        <button class="btn-s" onclick="closeModalD()" style="flex:1">Close</button>
       </div>
     </div>
   </div>
@@ -803,21 +802,19 @@ function renderVendors(){
     const closedDim=isClosed?'pointer-events:none;opacity:.55':'';
     const rfpDisabled=isClosed?'disabled style="opacity:.4;pointer-events:none"':'';
     const wUrl=websiteSearchURL(v);
-    const stUrl=statusCheckURL(v);
     const closedActionBtn=isClosed
       ?`<button class="act-btn unmark-closed" onclick="event.stopPropagation();unmarkClosed('${sn}')" style="flex:1;justify-content:center">&#9654; Reactivate</button>`
       :`<button class="act-btn mark-closed" onclick="event.stopPropagation();if(confirm('Mark ${dispNm} as PERMANENTLY CLOSED?'))markClosed('${sn}')" style="flex:1;justify-content:center">&#128683; Mark Closed</button>`;
     return `<div class="vcard ${ec}${isSelected?' rfp-selected':''}${isClosed?' closed':''}" id="${vcId}">
 <label class="rfp-check-wrap"><input type="checkbox" class="rfp-check" ${isSelected?'checked':''} ${rfpDisabled} onchange="toggleRFP('${sn}',this.checked)"><span class="rfp-check-lbl">Select for RFP</span></label>
 ${closedBanner}
-<div class="vc-top" style="${closedDim}"><div class="vc-av">${ini}</div><div class="vc-inf"><div class="vc-nm" style="display:flex;align-items:center;gap:0"><span onclick="openMo('${sn}')" title="${dispNm}" style="cursor:pointer;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm2}</span>${v.website?`<a class="vc-website-ico" href="${v.website}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Visit website">&#127760;</a>`:""}</div><div class="vc-id">ID: ${v.ids}</div></div><span class="ebdg ${ec}">${ELB[v.engagementLevel]||v.engagementLevel}</span></div>
+<div class="vc-top" style="${closedDim}"><div class="vc-av">${ini}</div><div class="vc-inf"><div class="vc-nm" style="display:flex;align-items:center;gap:4px"><span onclick="openMo('${sn}')" title="${dispNm}" style="cursor:pointer;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:inherit">${nm2}</span>${v.website?`<a class="vc-website-ico" href="${v.website}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${v.website}">&#127760;</a>`:""}</div><div class="vc-id">ID: ${v.ids}</div></div><span class="ebdg ${ec}">${ELB[v.engagementLevel]||v.engagementLevel}</span></div>
 <div class="vc-cats" style="${closedDim}">${cT}${sT}</div>
 <div class="vc-svcs" style="${closedDim}"><div class="vc-svcs-lbl" onclick="var l=this.nextElementSibling;var op=l.classList.toggle('svc-open');this.querySelector('.vc-svcs-lbl-arrow').textContent=op?'▴':'▾'">&#128295; Services &amp; Products Delivered<span class="vc-svcs-lbl-arrow">&#9662;</span></div><div class="vc-svcs-list">${svcChips}${moreBtn}${hiddenChips}${noSvcs}</div></div>
 <div class="vc-met" style="${closedDim}"><div class="met"><div class="met-v">${fmtV(v.totalPOValue)}</div><div class="met-l">Total PO Value (\u20B9)</div></div><div class="met"><div class="met-v">${v.orderCount}</div><div class="met-l">PO Orders</div></div><div class="met"><div class="met-v">${svcs.length}</div><div class="met-l">Service Items</div></div></div>
 <div class="vc-actions">
-  <a class="act-btn status" href="${stUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="flex:1;justify-content:center">&#128270; Check Status</a>
   <button class="det-btn" onclick="openMo('${sn}')" style="flex:1;text-align:center">&#128203; Full Profile &#8594;</button>
-  <span id="closed-btn-wrap-${vcId}" style="flex:1;display:flex">${closedActionBtn}</span>
+  <span style="flex:1;display:flex">${closedActionBtn}</span>
 </div>
 </div>`;
   }).join('');
@@ -932,7 +929,6 @@ function openMo(nm){
   document.getElementById('moCats').innerHTML=cats2.map(c=>`<span class="ctag" style="font-size:11px;padding:4px 10px">${CICO[c]||'\u{1F4CC}'} ${c}</span>`).join('')+sc.map(s=>`<span class="sctag" style="font-size:11px;padding:4px 10px">\u2192 ${s}</span>`).join('');
   const sv=filterServices(v.serviceTypes).slice(0,20);
   document.getElementById('moSvcs').innerHTML=sv.map(s=>`<div class="svc-it">${s}</div>`).join('')||'<div class="svc-it" style="color:var(--g5)">No service history on file</div>';
-  document.getElementById('moStatusBtn').onclick=()=>window.open(statusCheckURL(v),'_blank','noopener');
   const moCloseBtn=document.getElementById('moCloseToggleBtn');
   if(closedVendors.has(v.name)){moCloseBtn.textContent='\u25B6 Reactivate Vendor';moCloseBtn.style.background='var(--sc)';moCloseBtn.onclick=()=>{unmarkClosed(v.name);closeModalD();};}
   else{moCloseBtn.textContent='\u{1F6AB} Mark Permanently Closed';moCloseBtn.style.background='var(--hc)';moCloseBtn.onclick=()=>{if(confirm('Mark '+v.name+' as PERMANENTLY CLOSED?')){markClosed(v.name);closeModalD();}}; }
