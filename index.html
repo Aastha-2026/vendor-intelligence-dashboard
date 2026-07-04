@@ -111,14 +111,14 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .vcard.rfp-selected::before{height:4px;background:var(--wb)}
 
 /* RFP CHECKBOX */
-.rfp-check-wrap{position:absolute;top:10px;right:10px;z-index:10;display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.9);padding:3px 7px;border-radius:12px;border:1px solid var(--g3)}
+.rfp-check-wrap{display:none}
 .rfp-check-lbl{font-size:9px;font-weight:700;color:var(--g5);white-space:nowrap;cursor:pointer}
 .rfp-check{width:14px;height:14px;cursor:pointer;accent-color:var(--wb)}
 
-.vc-top{display:flex;align-items:flex-start;margin-bottom:8px;gap:7px;padding-right:90px}
+.vc-top{display:flex;align-items:flex-start;margin-bottom:8px;gap:7px}
 .vc-av{width:36px;height:36px;border-radius:8px;background:var(--wl);color:var(--wb);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-transform:uppercase}
 .vc-inf{flex:1;min-width:0}
-.vc-nm{font-size:16px;font-weight:700;color:var(--g7);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.vc-nm{font-size:14px;font-weight:700;color:var(--g7);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
 .vc-nm:hover{color:var(--wb);text-decoration:underline}.vc-website-ico{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:var(--wl);border:1px solid var(--wm);color:var(--wb);font-size:10px;text-decoration:none;flex-shrink:0;transition:all .15s;cursor:pointer;vertical-align:middle}.vc-website-ico:hover{background:var(--wb);color:#fff;border-color:var(--wb);transform:scale(1.1);box-shadow:0 2px 6px rgba(0,113,206,.3)}
 .vc-id{font-size:9px;color:var(--g5);margin-top:2px}
 .ebdg{padding:3px 6px;border-radius:9px;font-size:9px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px}
@@ -806,13 +806,14 @@ function renderVendors(){
       ?`<button class="act-btn unmark-closed" onclick="event.stopPropagation();unmarkClosed('${sn}')" style="flex:1;justify-content:center">&#9654; Reactivate</button>`
       :`<button class="act-btn mark-closed" onclick="event.stopPropagation();if(confirm('Mark ${dispNm} as PERMANENTLY CLOSED?'))markClosed('${sn}')" style="flex:1;justify-content:center">&#128683; Mark Closed</button>`;
     return `<div class="vcard ${ec}${isSelected?' rfp-selected':''}${isClosed?' closed':''}" id="${vcId}">
-<label class="rfp-check-wrap"><input type="checkbox" class="rfp-check" ${isSelected?'checked':''} ${rfpDisabled} onchange="toggleRFP('${sn}',this.checked)"><span class="rfp-check-lbl">Select for RFP</span></label>
+
 ${closedBanner}
 <div class="vc-top" style="${closedDim}"><div class="vc-av">${ini}</div><div class="vc-inf"><div class="vc-nm" style="display:flex;align-items:center;gap:4px"><span onclick="openMo('${sn}')" title="${dispNm}" style="cursor:pointer;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm2}</span>${v.website?'<a class="vc-website-ico" href="'+v.website+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Visit website">&#127760;</a>':''}</div><div class="vc-id">ID: ${v.ids}</div></div><span class="ebdg ${ec}">${ELB[v.engagementLevel]||v.engagementLevel}</span></div>
 <div class="vc-cats" style="${closedDim}">${cT}${sT}</div>
 <div class="vc-svcs" style="${closedDim}"><div class="vc-svcs-lbl" onclick="var l=this.nextElementSibling;var op=l.classList.toggle('svc-open');this.querySelector('.vc-svcs-lbl-arrow').textContent=op?'&#9652;':'&#9662;'">&#128295; Services &amp; Products Delivered<span class="vc-svcs-lbl-arrow">&#9662;</span></div><div class="vc-svcs-list">${svcChips}${moreBtn}${hiddenChips}${noSvcs}</div></div>
 <div class="vc-met" style="${closedDim}"><div class="met"><div class="met-v">${fmtV(v.totalPOValue)}</div><div class="met-l">Total PO Value (\u20B9)</div></div><div class="met"><div class="met-v">${v.orderCount}</div><div class="met-l">PO Orders</div></div><div class="met"><div class="met-v">${svcs.length}</div><div class="met-l">Service Items</div></div></div>
 <div class="vc-actions">
+  <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:4px 6px;border-radius:6px;border:1px solid var(--g3);background:#fff;cursor:pointer;font-size:10px;font-weight:600;color:var(--g5)"><input type="checkbox" class="rfp-check" ${isSelected?'checked':''} ${rfpDisabled} onchange="toggleRFP('${sn}',this.checked)" style="accent-color:var(--wb)"> RFP</label>
   <button class="det-btn" onclick="openMo('${sn}')" style="flex:1;text-align:center">&#128203; Full Profile &#8594;</button>
   <span style="flex:1;display:flex">${closedActionBtn}</span>
 </div>
