@@ -808,7 +808,7 @@ function showSugg(q) {
       h+='<div class="sugg-row" onclick="selVend(\''+snm+'\')">'
         +'<span class="sugg-ico">\u{1F3ED}</span>'
         +'<div class="sugg-info"><div class="sugg-nm">'+hlT(dn,q)+'</div>'
-        +'<div class="sugg-mt">'+cats+' &middot; '+v.orderCount+' orders &middot; '+flag+' '+cur+'</div></div>'
+        +'<div class="sugg-mt">'+cats+' &middot; '+v.orderCount+' orders &middot; '+cur+'</div></div>'
         +'<span class="ebdg '+ec+'" style="font-size:9px">'+(ec==='sp'?'\u2B50 SP':ec==='rv'?'\u{1F501} RV':'\u{1F539} OT')+'</span></div>';
     });
   }
@@ -988,7 +988,7 @@ function renderVendors(){
       +'<div class="vc-svcs-list">'+svcChips+moreBtn+hiddenChips+noSvcs+'</div></div>\n'
       +'<div class="vc-met" style="'+closedDim+'">'
       +'<div class="met"><div class="met-v">'+v.orderCount+'</div><div class="met-l">PO Orders</div></div>'
-      +'<div class="met"><div class="met-v" style="font-size:11px">'+flag+' '+cur+'</div><div class="met-l">Trade Currency</div></div>'
+      +'<div class="met"><div class="met-v" style="font-size:11px">'+cur+'</div><div class="met-l">Trade Currency</div></div>'
       +'<div class="met"><div class="met-v">'+(svcs.length||'&mdash;')+'</div><div class="met-l">Service Items</div></div>'
       +'</div>\n'
       +'<div class="vc-actions">'
@@ -1054,7 +1054,7 @@ function openMo(nm){
   document.getElementById('moOrd').textContent=v.orderCount+' purchase orders';
   document.getElementById('moTier').innerHTML='<span style="font-weight:700;color:'+(tc==='hi'?'var(--hc)':tc==='md'?'var(--mc)':'var(--lc)')+'">'+v.tier+'</span>';
   document.getElementById('moEngL').textContent=v.engagementLevel;
-  document.getElementById('moCurrency').textContent=flag+' '+cur;
+  document.getElementById('moCurrency').textContent=cur;
   document.getElementById('moMSME').textContent=v.msme||'\u2014';
   const f=document.getElementById('spFill');
   f.style.background=tc==='hi'?'var(--hc)':tc==='md'?'var(--mc)':'var(--lc)';
