@@ -260,6 +260,9 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-weight:600}
 @media(max-width:760px){.layout{flex-direction:column;height:auto}.sidebar{width:100%;max-height:160px}.vgrid{grid-template-columns:1fr}.mo-grid{grid-template-columns:1fr}.rfp-bar{flex-direction:column;gap:8px}}
 </style>
+
+<!-- Vendor data: loaded via script tag so file:// protocol works too -->
+<script src="./vendors-data.js"></script>
 </head>
 <body>
 
@@ -591,12 +594,29 @@ function processVendors(raw) {
 // ── Primary fetch: loads vendors.json with cache-busting ──
 async function loadVendors(isRefresh) {
   setLoading(true, isRefresh ? 'Refreshing vendor data\u2026' : 'Loading vendor data\u2026');
+
+  // On initial load: use inline data from vendors-data.js (works on file://).
+  // On REFRESH: try fetch for latest data, fall back to inline if offline.
+  if (!isRefresh && window.__VENDOR_DATA__ && window.__VENDOR_DATA__.length) {
+    try {
+      processVendors(window.__VENDOR_DATA__);
+      updateRefreshTs();
+      buildCats();
+      renderVendors();
+      setupSearch();
+    } finally {
+      setLoading(false);
+    }
+    return;
+  }
+
   const url = DATA_SRC + '?v=' + Date.now();
   try {
     const res = await fetch(url, {cache:'no-store'});
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) throw new Error('Empty or invalid dataset');
+    window.__VENDOR_DATA__ = data; // update in-memory cache
     processVendors(data);
     updateRefreshTs();
     buildCats();
@@ -606,7 +626,19 @@ async function loadVendors(isRefresh) {
   } catch (err) {
     console.error('loadVendors:', err);
     if (isRefresh) {
-      showToast('\u26A0 Refresh failed: ' + err.message, true);
+      // Refresh failed — fall back to currently loaded data
+      if (VENDORS.length) {
+        showToast('\u26A0 Refresh failed (using cached data): ' + err.message, true);
+      } else if (window.__VENDOR_DATA__ && window.__VENDOR_DATA__.length) {
+        processVendors(window.__VENDOR_DATA__);
+        updateRefreshTs();
+        buildCats();
+        renderVendors();
+        setupSearch();
+        showToast('\u26A0 Fetch failed, loaded from local copy', true);
+      } else {
+        showToast('\u26A0 Refresh failed: ' + err.message, true);
+      }
     } else {
       const grid = document.getElementById('vgrid');
       if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--hc)">'
