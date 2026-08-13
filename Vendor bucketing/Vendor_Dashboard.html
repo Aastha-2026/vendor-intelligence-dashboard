@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walmart India &mdash; Vendor Intelligence Dashboard</title>
+<style>
+@font-face{font-family:'Bogle';src:url('https://i5.walmartimages.com/dfw/4ff9c6c9-71b3/k2-_6bfc46cc-7a63-4ab4-8c2e-3d6b17fc8df4.v1.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'Bogle';src:url('https://i5.walmartimages.com/dfw/4ff9c6c9-71b3/k2-_d86b87ae-2022-4736-94ac-91ca2fe36ed8.v1.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+</style>
+<style>
+:root{
+  --wb:#0071CE;--wd:#004F9A;--wl:#E6F3FF;--wm:#CCE5F5;--wy:#FFC220;--wyd:#E6A800;
+  --g7:#2E2F32;--g5:#74767C;--g3:#C2C3C8;--g2:#E8E8E8;--g1:#F3F3F3;--g0:#FAFAFA;
+  --sc:#1B5E20;--sl:#E8F5E9;--sm:#43A047;
+  --rc:#1565C0;--rl:#E3F2FD;--rm:#1E88E5;
+  --oc:#6A1B9A;--ol:#F3E5F5;--om:#AB47BC;
+  --hc:#B71C1C;--mc:#E65100;--lc:#2E7D32;
+  --mr-bg:#FFF8E1;--mr-border:#FFD54F;--mr-c:#E65100;
+  --closed-bg:#FFF5F5;--closed-red:#B71C1C;--closed-light:#FFCDD2;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;color:var(--g7);background:var(--g1);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.hdr{background:var(--wb);color:#fff;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.hdr-title{font-size:16px;font-weight:700;letter-spacing:-.2px;line-height:1.2}
+.hdr-sub{font-size:10px;opacity:.75;margin-top:1px}
+.hdr-r{display:flex;align-items:center;gap:8px;font-size:11px}
+.hdr-chip{background:var(--wy);color:#1D1D1D;padding:3px 9px;border-radius:20px;font-weight:700;font-size:10px}.share-btn{background:rgba(255,255,255,.18);color:#fff;border:1.5px solid rgba(255,255,255,.5);padding:4px 12px;border-radius:20px;font-weight:700;font-size:10px;cursor:pointer;transition:all .15s;margin-left:8px}.share-btn:hover{background:rgba(255,255,255,.32);border-color:#fff}.share-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(60px);background:#1D3557;color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:all .35s;pointer-events:none}.share-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.share-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center}.share-modal.open{display:flex}.share-box{background:#fff;border-radius:12px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.22)}.share-box h3{margin:0 0 6px;font-size:16px;color:var(--wb)}.share-box p{margin:0 0 16px;font-size:12px;color:#555}.share-url{width:100%;box-sizing:border-box;border:1.5px solid #ccc;border-radius:6px;padding:8px 10px;font-size:12px;color:#333;background:#f8f8f8;margin-bottom:12px;resize:none;height:56px}.share-actions{display:flex;gap:8px;justify-content:flex-end}.share-copy-btn{background:var(--wb);color:#fff;border:none;padding:8px 18px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer}.share-copy-btn:hover{background:#005aa3}.share-cancel{background:#eee;color:#333;border:none;padding:8px 14px;border-radius:6px;font-size:12px;cursor:pointer}.share-steps{font-size:11px;color:#666;margin-top:10px;line-height:1.7}
+
+/* SEARCH */
+.srch-sec{background:var(--wd);padding:18px 24px 14px}
+.srch-lbl{color:#fff;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;opacity:.85}
+.srch-hint{color:rgba(255,255,255,.7);font-size:11px;margin-bottom:9px}
+.srch-wrap{position:relative;max-width:700px}
+.srch-inp{width:100%;padding:12px 44px 12px 16px;border:none;border-radius:8px;font-size:15px;font-family:inherit;background:#fff;color:var(--g7);box-shadow:0 4px 16px rgba(0,0,0,.2);outline:none}
+.srch-inp:focus{box-shadow:0 4px 22px rgba(255,194,32,.45)}
+.srch-ico{position:absolute;right:13px;top:50%;transform:translateY(-50%);font-size:18px;pointer-events:none}
+.srch-clr{position:absolute;right:38px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:14px;color:var(--g5);cursor:pointer;display:none;padding:3px}
+.sugg{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.15);max-height:340px;overflow-y:auto;display:none;z-index:500}
+.sugg-hd{padding:7px 13px 5px;font-size:9px;font-weight:700;color:var(--g5);text-transform:uppercase;letter-spacing:.5px;background:var(--g0);border-bottom:1px solid var(--g1);position:sticky;top:0}
+.sugg-row{padding:8px 13px;display:flex;align-items:center;gap:9px;cursor:pointer;border-bottom:1px solid var(--g1)}
+.sugg-row:hover,.sugg-row.foc{background:var(--wl)}
+.sugg-ico{font-size:14px;flex-shrink:0}
+.sugg-info{flex:1;min-width:0}
+.sugg-nm{font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sugg-mt{font-size:10px;color:var(--g5);margin-top:1px}
+
+/* FILTER BAR */
+.fbar{background:#fff;padding:9px 24px;border-bottom:1px solid var(--g2);display:flex;align-items:center;gap:5px;flex-wrap:wrap;position:sticky;top:58px;z-index:200}
+.flbl{font-size:10px;font-weight:700;color:var(--g5);white-space:nowrap}
+.fc{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid var(--g3);background:#fff;color:var(--g7);transition:all .15s;white-space:nowrap}
+.fc:hover{border-color:var(--wb);color:var(--wb)}
+.fc.on{background:var(--wb);color:#fff;border-color:var(--wb)}
+.fc.sp.on{background:var(--sc);border-color:var(--sc)}
+.fc.rv.on{background:var(--rc);border-color:var(--rc)}
+.fc.ot.on{background:var(--oc);border-color:var(--oc)}
+.fc.hi.on{background:var(--hc);border-color:var(--hc)}
+.fc.md.on{background:var(--mc);border-color:var(--mc)}
+.fc.lo.on{background:var(--lc);border-color:var(--lc)}
+.fdiv{width:1px;height:16px;background:var(--g3)}
+
+/* STATS */
+.stats{background:#fff;padding:11px 24px;display:flex;border-bottom:1px solid var(--g2)}
+.stat{flex:1;text-align:center;padding:0 6px}
+.stat+.stat{border-left:1px solid var(--g2)}
+.stat-v{font-size:19px;font-weight:700;color:var(--wb);line-height:1.2}
+.stat-l{font-size:9px;color:var(--g5);margin-top:1px;text-transform:uppercase;letter-spacing:.3px}
+/* LOADING OVERLAY */
+.loading-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9500;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loading-ov.show{display:flex}
+.spin{width:44px;height:44px;border:5px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .75s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{color:#fff;font-size:14px;font-weight:600}
+/* REFRESH BUTTON */
+.refresh-btn{display:flex;align-items:center;gap:5px;background:var(--wy);color:#1D1D1D;border:none;padding:4px 11px;border-radius:20px;font-family:inherit;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}
+.refresh-btn:hover{background:var(--wyd);transform:scale(1.05)}
+.refresh-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+.last-refreshed{font-size:9px;opacity:.65;white-space:nowrap}
+/* REFRESH TOAST */
+.refresh-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(60px);color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:all .35s;pointer-events:none;background:#1B5E20}
+.refresh-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* LAYOUT */
+.layout{display:flex;height:calc(100vh - 210px);min-height:480px}
+.sidebar{width:228px;background:#fff;border-right:1px solid var(--g2);overflow-y:auto;flex-shrink:0}
+.sb-hd{padding:11px 13px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--g5);background:var(--g0);border-bottom:1px solid var(--g2);position:sticky;top:0}
+.cat-row{padding:8px 13px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;border-bottom:1px solid var(--g1);transition:background .12s}
+.cat-row:hover{background:var(--wl)}
+.cat-row.on{background:var(--wl);border-left:3px solid var(--wb)}
+.cat-row.on .cat-nm{color:var(--wb);font-weight:700}
+.cat-l{display:flex;align-items:center;gap:6px;flex:1}
+.cat-nm{font-size:11px;font-weight:500;color:var(--g7);line-height:1.3}
+.cat-cnt{background:var(--wb);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:8px;flex-shrink:0;min-width:18px;text-align:center}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;padding:14px 18px 80px}
+.con-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap}
+.con-title{font-size:15px;font-weight:700;color:var(--g7)}
+.con-meta{font-size:11px;color:var(--g5);margin-top:2px}
+.con-r{display:flex;align-items:center;gap:7px}
+.sort-sel{padding:5px 9px;border:1px solid var(--g3);border-radius:6px;font-family:inherit;font-size:11px;color:var(--g7);background:#fff;cursor:pointer}
+.exp-btn{padding:5px 11px;background:var(--wl);color:var(--wb);border:1px solid var(--wb);border-radius:6px;font-family:inherit;font-size:11px;font-weight:600;cursor:pointer}
+.exp-btn:hover{background:var(--wb);color:#fff}
+
+/* SEARCH RESULT BANNER - neutral, no ranking claim */
+.s-banner{background:var(--wl);border:1px solid var(--wm);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:none}
+.s-banner.show{display:block}
+.s-banner-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.s-banner-t{font-size:13px;color:var(--wd);flex:1}
+.s-banner-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.s-banner-lk{font-size:11px;font-weight:600;color:var(--wb);text-decoration:none;white-space:nowrap;padding:4px 9px;border:1px solid var(--wb);border-radius:4px}
+.s-banner-lk:hover{background:var(--wb);color:#fff}
+
+/* SECTION LINE - single line, no box */
+.section-line{font-size:11px;font-weight:600;color:var(--sc);margin-bottom:10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #C8E6C9;padding-bottom:6px}
+
+/* VENDOR GRID */
+.vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;margin-bottom:20px}
+
+/* VENDOR CARD */
+.vcard{background:#fff;border-radius:8px;border:1px solid var(--g2);padding:14px;cursor:default;transition:all .15s;position:relative;overflow:hidden}
+.vcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--om)}
+.vcard.sp::before{background:var(--sm)} .vcard.rv::before{background:var(--rm)}
+.vcard:hover{box-shadow:0 4px 18px rgba(0,113,206,.18);border-color:var(--g3)}
+.vcard.rfp-selected{border:2px solid var(--wb);box-shadow:0 0 0 3px rgba(0,113,206,.15)}
+.vcard.rfp-selected::before{height:4px;background:var(--wb)}
+
+/* RFP CHECKBOX */
+.rfp-check-wrap{display:none}
+.rfp-check-lbl{font-size:9px;font-weight:700;color:var(--g5);white-space:nowrap;cursor:pointer}
+.rfp-check{width:14px;height:14px;cursor:pointer;accent-color:var(--wb)}
+
+.vc-top{display:flex;align-items:flex-start;margin-bottom:8px;gap:7px}
+.vc-av{width:36px;height:36px;border-radius:8px;background:var(--wl);color:var(--wb);font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-transform:uppercase}
+.vc-inf{flex:1;min-width:0}
+.vc-nm{font-size:14px;font-weight:700;color:var(--g7);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+.vc-nm:hover{color:var(--wb);text-decoration:underline}.vc-website-ico{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:var(--wl);border:1px solid var(--wm);color:var(--wb);font-size:10px;text-decoration:none;flex-shrink:0;transition:all .15s;cursor:pointer;vertical-align:middle}.vc-website-ico:hover{background:var(--wb);color:#fff;border-color:var(--wb);transform:scale(1.1);box-shadow:0 2px 6px rgba(0,113,206,.3)}
+.vc-id{font-size:9px;color:var(--g5);margin-top:2px}
+.ebdg{padding:3px 6px;border-radius:9px;font-size:9px;font-weight:700;white-space:nowrap;flex-shrink:0;margin-top:1px}
+.ebdg.sp{background:var(--sl);color:var(--sc)} .ebdg.rv{background:var(--rl);color:var(--rc)} .ebdg.ot{background:var(--ol);color:var(--oc)}
+
+/* CATEGORY TAGS */
+.vc-cats{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:8px}
+.ctag{background:var(--wl);color:var(--wd);font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.sctag{background:var(--g1);color:var(--g5);font-size:9px;padding:2px 6px;border-radius:3px;white-space:nowrap}
+
+/* SERVICES DELIVERED - new inline section */
+.vc-svcs{margin-bottom:8px}
+.vc-svcs-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--wb);margin-bottom:0;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:4px 7px;border-radius:5px;background:var(--wl);border:1px solid var(--wm);transition:background .15s}
+.vc-svcs-lbl:hover{background:var(--wm)}
+.vc-svcs-lbl-arrow{font-size:9px;color:var(--wb);flex-shrink:0;margin-left:4px;transition:transform .2s}
+.vc-svcs-list{display:none;flex-wrap:wrap;gap:3px;padding-top:6px}
+.vc-svcs-list.svc-open{display:flex}
+.svc-chip{display:flex;align-items:center;gap:3px;background:#F0F7FF;color:var(--wd);font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--wm);line-height:1.4}
+.svc-chip::before{content:'✓';color:var(--sc);font-size:9px;font-weight:700}
+.svc-chip-more{background:var(--g1);color:var(--g5);font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--g3);cursor:pointer;font-style:italic}
+.svc-chip-more:hover{background:var(--wl);color:var(--wb);border-color:var(--wm)}
+
+/* METRICS */
+.vc-met{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px;background:var(--g0);border-radius:6px;margin-bottom:8px;border:1px solid var(--g2)}
+.met{text-align:center} .met-v{font-size:12px;font-weight:700;color:var(--g7)} .met-l{font-size:9px;color:var(--g5);margin-top:1px}
+
+.vc-ft{display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--g1)}
+.tbdg{display:flex;align-items:center;gap:3px;font-size:10px;font-weight:700}
+.tdot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tbdg.hi{color:var(--hc)} .tbdg.hi .tdot{background:var(--hc)}
+.tbdg.md{color:var(--mc)} .tbdg.md .tdot{background:var(--mc)}
+.tbdg.lo{color:var(--lc)} .tbdg.lo .tdot{background:var(--lc)}
+.det-btn{font-size:10px;color:var(--wb);font-weight:700;cursor:pointer;background:var(--wl);font-family:inherit;padding:5px 10px;border-radius:6px;border:1px solid var(--wm);white-space:nowrap;transition:all .15s}
+.det-btn:hover{background:var(--wb);color:#fff;border-color:var(--wb)}
+.vc-actions{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--g2)}
+.act-btn{padding:3px 9px;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid;font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:4px;text-decoration:none;white-space:nowrap}
+.act-btn.web{color:var(--wd);border-color:var(--wm);background:var(--wl)}
+.act-btn.web:hover{background:var(--wb);color:#fff;border-color:var(--wb)}
+
+.act-btn.status:hover{background:#7B1FA2;color:#fff;border-color:#7B1FA2}
+.act-btn.mark-closed{color:var(--hc);border-color:var(--closed-light);background:var(--closed-bg)}
+.act-btn.mark-closed:hover{background:var(--hc);color:#fff;border-color:var(--hc)}
+.act-btn.unmark-closed{color:var(--sc);border-color:#A5D6A7;background:var(--sl)}
+.act-btn.unmark-closed:hover{background:var(--sc);color:#fff}
+
+/* PERMANENTLY CLOSED card state */
+.vcard.closed{background:var(--closed-bg);border-color:var(--closed-light);opacity:.85}
+.vcard.closed::before{background:var(--hc)!important;height:4px!important}
+.closed-banner{background:var(--hc);color:#fff;text-align:center;font-size:11px;font-weight:900;letter-spacing:1.5px;padding:5px 8px;border-radius:4px;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px}
+.closed-banner-sub{font-size:9px;font-weight:400;letter-spacing:.5px;opacity:.85;margin-top:1px}
+
+/* MARKET RESEARCH PANEL */
+.mr-panel{background:var(--mr-bg);border:1.5px dashed var(--mr-border);border-radius:10px;padding:16px 18px;margin-bottom:20px;display:none}
+.mr-panel.show{display:block}
+.mr-title{font-size:13px;font-weight:700;color:var(--mr-c);margin-bottom:4px}
+.mr-desc{font-size:11px;color:#5D4037;margin-bottom:12px;line-height:1.5}
+.mr-links{display:flex;flex-wrap:wrap;gap:8px}
+.mr-link{display:flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;border:1px solid var(--mr-border);border-radius:6px;text-decoration:none;font-size:11px;font-weight:600;color:var(--g7);transition:all .15s}
+.mr-link:hover{background:var(--wy);border-color:var(--wyd);color:#1D1D1D}
+.mr-link-ico{font-size:14px}
+.mr-disclaimer{font-size:10px;color:var(--g5);margin-top:10px;font-style:italic}
+
+/* EMPTY */
+.empty{text-align:center;padding:60px 20px}
+.empty-ico{font-size:40px;margin-bottom:12px;opacity:.4}
+.empty-t{font-size:16px;font-weight:700;color:var(--g5)}
+.empty-s{font-size:12px;color:var(--g5);margin-top:6px}
+
+/* RFP BAR - sticky bottom */
+.rfp-bar{position:fixed;bottom:0;left:0;right:0;background:var(--wd);color:#fff;padding:12px 24px;display:none;align-items:center;justify-content:space-between;gap:12px;z-index:400;box-shadow:0 -4px 20px rgba(0,0,0,.25)}
+.rfp-bar.show{display:flex}
+.rfp-bar-l{display:flex;align-items:center;gap:10px}
+.rfp-bar-count{background:var(--wy);color:#1D1D1D;font-weight:700;font-size:13px;padding:4px 12px;border-radius:20px}
+.rfp-bar-txt{font-size:13px;opacity:.9}
+.rfp-bar-r{display:flex;align-items:center;gap:8px}
+.rfp-gen-btn{padding:9px 18px;background:var(--wy);color:#1D1D1D;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+.rfp-gen-btn:hover{background:var(--wyd)}
+.rfp-clear-btn{padding:9px 14px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.rfp-clear-btn:hover{background:rgba(255,255,255,.25)}
+
+/* MODAL */
+.mo-ov{position:fixed;inset:0;background:rgba(0,0,0,.52);z-index:1000;display:none;align-items:center;justify-content:center;padding:16px}
+.mo-ov.open{display:flex}
+.mo{background:#fff;border-radius:12px;width:100%;max-width:660px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mo-hd{background:linear-gradient(135deg,var(--wb),var(--wd));color:#fff;padding:18px 20px;border-radius:12px 12px 0 0;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.mo-hd-l{flex:1}
+.mo-eng-chip{display:inline-block;margin-bottom:7px;padding:3px 9px;border-radius:9px;font-size:9px;font-weight:700;background:rgba(255,255,255,.2)}
+.mo-nm{font-size:17px;font-weight:700;line-height:1.3}
+.mo-id-t{font-size:10px;opacity:.75;margin-top:3px}
+.mo-cls{background:rgba(255,255,255,.2);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mo-cls:hover{background:rgba(255,255,255,.35)}
+.mo-bod{padding:18px 20px}
+.mo-sec{margin-bottom:18px}
+.mo-sec-t{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--g5);margin-bottom:9px;padding-bottom:5px;border-bottom:1px solid var(--g2)}
+.mo-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.mo-fld{background:var(--g0);padding:8px 11px;border-radius:6px}
+.mo-fl{font-size:9px;color:var(--g5);margin-bottom:3px}
+.mo-fv{font-size:13px;font-weight:600;color:var(--g7)}
+.svc-list{display:flex;flex-direction:column;gap:4px}
+.svc-it{display:flex;align-items:flex-start;gap:7px;padding:6px 9px;background:var(--g0);border-radius:5px;font-size:11px;color:var(--g7);line-height:1.4}
+.svc-it::before{content:'✓';color:var(--sc);font-weight:700;font-size:10px;flex-shrink:0;margin-top:1px}
+.mo-acts{display:flex;gap:9px;margin-top:18px;padding-top:13px;border-top:1px solid var(--g2)}
+.btn-p{flex:1;min-width:120px;padding:10px 13px;background:var(--wb);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.btn-p:hover{background:var(--wd)}
+.btn-s{flex:1;padding:10px 13px;background:#fff;color:var(--wb);border:1.5px solid var(--wb);border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
+.btn-s:hover{background:var(--wl)}
+.btn-y{padding:10px 13px;background:var(--wy);color:#1D1D1D;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.spbar{height:7px;background:var(--g2);border-radius:4px;overflow:hidden;margin-top:7px}
+.spfill{height:100%;border-radius:4px;transition:width .5s ease}
+
+/* RFP MODAL */
+.rfp-mo{background:#fff;border-radius:12px;width:100%;max-width:700px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.rfp-mo-hd{background:linear-gradient(135deg,var(--sc),#2E7D32);color:#fff;padding:18px 20px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center}
+.rfp-mo-title{font-size:17px;font-weight:700}
+.rfp-mo-bod{padding:20px}
+.rfp-template{background:var(--g0);border:1px solid var(--g2);border-radius:8px;padding:16px;font-size:12px;line-height:1.8;white-space:pre-wrap;font-family:'Courier New',monospace;color:var(--g7);max-height:400px;overflow-y:auto}
+.rfp-mo-acts{display:flex;gap:9px;margin-top:16px;padding-top:13px;border-top:1px solid var(--g2)}
+.rfp-copy-btn{flex:1;padding:10px;background:var(--sc);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.rfp-copy-btn:hover{background:#1B5E20}
+
+mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-weight:600}
+@media(max-width:760px){.layout{flex-direction:column;height:auto}.sidebar{width:100%;max-height:160px}.vgrid{grid-template-columns:1fr}.mo-grid{grid-template-columns:1fr}.rfp-bar{flex-direction:column;gap:8px}}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hdr-l">
+    <div>
+      <div class="hdr-title">WALMART INDIA &mdash; Vendor Intelligence Dashboard</div>
+      <div class="hdr-sub">Procurement | Empaneled Vendor Registry &middot; Bengaluru &amp; Chennai &middot; FY 2024&ndash;26</div>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <span id="liveDate" style="opacity:.8"></span>
+    <span id="lastRefreshedTs" class="last-refreshed"></span>
+    <button id="refreshBtn" class="refresh-btn" onclick="refreshData()" title="Reload latest data from source">&#8635; Refresh</button>
+    <span class="hdr-chip" onclick="openRFPHelp()" style="cursor:pointer" title="How to use RFP Builder">&#128202; RFP Builder &#9432;</span>
+    <button class="share-btn" onclick="openShareModal()">&#128279; Share</button>
+  </div>
+</header>
+
+<!-- Share Modal -->
+<div class="share-modal" id="shareModal" onclick="if(event.target===this)closeShareModal()">
+  <div class="share-box">
+    <h3>&#128279; Share this Dashboard</h3>
+    <p>Share this live dashboard with anyone &mdash; no login required.</p>
+    <textarea class="share-url" id="shareUrl" readonly></textarea>
+    <div class="share-steps">
+      <b>To share:</b><br>
+      1. Copy the link above &rarr; paste in Teams, Outlook, or Loop<br>
+      2. Recipient clicks the link &mdash; opens directly in browser<br>
+      3. Always live &mdash; reflects latest updates automatically
+    </div>
+    <div class="share-actions" style="margin-top:14px">
+      <button class="share-cancel" onclick="closeShareModal()">Cancel</button>
+      <button class="share-copy-btn" onclick="copyShareLink()">&#128203; Copy Link</button>
+    </div>
+  </div>
+</div>
+<div class="share-toast" id="shareToast">&#10003; Link copied to clipboard!</div>
+
+<!-- RFP Help Modal -->
+<div class="share-modal" id="rfpHelpModal" onclick="if(event.target===this)closeRFPHelp()">
+  <div class="share-box" style="max-width:520px">
+    <h3>&#128202; How to use RFP Builder</h3>
+    <p style="margin-bottom:14px;font-size:12px;color:#555;line-height:1.6">Build a competitive RFP in 3 simple steps:</p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-start;gap:10px;background:#F0F7FF;border-radius:8px;padding:10px 12px">
+        <span style="font-size:20px;flex-shrink:0">&#9745;</span>
+        <div><b style="font-size:12px;color:#004F9A">Step 1 — Select vendors</b><br><span style="font-size:11px;color:#555">On any vendor card, tick the <b>Select for RFP</b> checkbox (top-right corner). Select as many vendors as needed.</span></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;background:#F0F7FF;border-radius:8px;padding:10px 12px">
+        <span style="font-size:20px;flex-shrink:0">&#128196;</span>
+        <div><b style="font-size:12px;color:#004F9A">Step 2 — Generate template</b><br><span style="font-size:11px;color:#555">A blue bar appears at the bottom showing selected vendors. Click <b>Generate RFP Template</b> to create a pre-filled RFP document.</span></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;background:#F0F7FF;border-radius:8px;padding:10px 12px">
+        <span style="font-size:20px;flex-shrink:0">&#128203;</span>
+        <div><b style="font-size:12px;color:#004F9A">Step 3 — Copy &amp; send</b><br><span style="font-size:11px;color:#555">Copy the generated RFP template and paste into Teams, Outlook, or Word to send to vendors for competitive bidding.</span></div>
+      </div>
+    </div>
+    <div class="share-actions">
+      <button class="share-cancel" onclick="closeRFPHelp()">Close</button>
+      <button class="share-copy-btn" onclick="closeRFPHelp();document.querySelector('.content').scrollIntoView({behavior:'smooth'})">&#128202; Got it — Start selecting</button>
+    </div>
+  </div>
+</div>
+
+<div class="srch-sec">
+  <div class="srch-lbl">&#128269; Find All Vendors for a Service or Product</div>
+  <div class="srch-hint">All matching vendors from our database are shown &mdash; select any to add to RFP for competitive bidding</div>
+  <div class="srch-wrap">
+    <input class="srch-inp" id="sInp" type="text" placeholder="e.g. Laptop, AV Installation, Legal Counsel, Catering, Security cameras, Modular Furniture&#8230;" autocomplete="off" spellcheck="false">
+    <button class="srch-clr" id="sClr" onclick="clearSearch()" title="Clear">&#10005;</button>
+    <span class="srch-ico">&#128269;</span>
+    <div class="sugg" id="sugg"></div>
+  </div>
+</div>
+
+<div class="fbar">
+  <span class="flbl">Engagement:</span>
+  <button class="fc sp" onclick="toggleFilter('sp')">&#11088; Strategic Partner</button>
+  <button class="fc rv" onclick="toggleFilter('rv')">&#128257; Repeat Vendor</button>
+  <button class="fc ot" onclick="toggleFilter('ot')">&#128312; One-Time</button>
+  <div class="fdiv"></div>
+  <span class="flbl">Spend Tier:</span>
+  <button class="fc hi" onclick="toggleFilter('hi')">&#128308; HIGH</button>
+  <button class="fc md" onclick="toggleFilter('md')">&#128992; MEDIUM</button>
+  <button class="fc lo" onclick="toggleFilter('lo')">&#128994; LOW</button>
+  <div class="fdiv"></div>
+  <button class="fc" style="color:var(--hc);border-color:var(--hc)" onclick="clearAllFilters()">&#10005; Clear All</button>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-v" id="stTotal">&#8212;</div><div class="stat-l">Vendors Shown</div></div>
+  <div class="stat"><div class="stat-v" id="stSP" style="color:var(--sc)">&#8212;</div><div class="stat-l">Strategic Partners</div></div>
+  <div class="stat"><div class="stat-v" id="stRV" style="color:var(--rc)">&#8212;</div><div class="stat-l">Repeat Vendors</div></div>
+  <div class="stat"><div class="stat-v" id="stOT" style="color:var(--oc)">&#8212;</div><div class="stat-l">One-Time Vendors</div></div>
+  <div class="stat"><div class="stat-v" id="stCats">&#8212;</div><div class="stat-l">Categories</div></div>
+  <div class="stat"><div class="stat-v" id="stMultiCur" style="color:#6A1B9A">&#8212;</div><div class="stat-l">Multi-Currency</div></div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sb-hd">&#128194; Procurement Categories</div>
+    <div id="catList"></div>
+  </nav>
+
+  <main class="content">
+    <div class="con-top">
+      <div>
+        <div class="con-title" id="conTitle">All Vendors</div>
+        <div class="con-meta" id="conMeta"></div>
+      </div>
+      <div class="con-r">
+        <select class="sort-sel" id="sortSel" onchange="renderVendors()">
+          <option value="eng">Sort: Engagement Level</option>
+          <option value="ord">Order Count &#8595;</option>
+          <option value="az">Name A&#8211;Z</option>
+          <option value="za">Name Z&#8211;A</option>
+        </select>
+        <button class="exp-btn" onclick="exportCSV()">&#11015; Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Search results banner -->
+    <div class="s-banner" id="sBanner">
+      <div class="s-banner-top">
+        <span class="s-banner-t" id="sBTxt"></span>
+      </div>
+    </div>
+
+    <!-- Vendor grid (empaneled) -->
+    <div class="vgrid" id="vgrid"></div>
+    <div class="empty" id="empty" style="display:none">
+      <div class="empty-ico">&#128269;</div>
+      <div class="empty-t">No empaneled vendors found</div>
+      <div class="empty-s">Explore market research options below to discover new vendors for this service</div>
+    </div>
+
+    <!-- Market Research Panel - clearly labeled as NOT empaneled -->
+    <div class="mr-panel" id="mrPanel">
+      <div class="mr-title">&#127760; Discover Additional Vendors &mdash; Market Research Only</div>
+      <div class="mr-desc">&#9888;&#65039; <strong>The vendors below are NOT in our empaneled database.</strong> These links search external markets for &ldquo;<span id="mrQuery"></span>&rdquo; service providers in India. Use to identify new vendors to invite to your RFP &mdash; conduct due diligence before onboarding.</div>
+      <div class="mr-links" id="mrLinks"></div>
+      <div class="mr-disclaimer">&#128204; Market research results are external and unvetted. Any new vendor must go through Walmart&rsquo;s standard vendor onboarding and compliance process before engagement.</div>
+    </div>
+  </main>
+</div>
+
+<!-- RFP STICKY BAR -->
+<div class="rfp-bar" id="rfpBar">
+  <div class="rfp-bar-l">
+    <span class="rfp-bar-count" id="rfpCount">0</span>
+    <span class="rfp-bar-txt" id="rfpBarTxt">vendors selected for RFP</span>
+  </div>
+  <div class="rfp-bar-r">
+    <button class="rfp-gen-btn" onclick="generateRFP()">&#128196; Generate RFP Template</button>
+    <button class="rfp-clear-btn" onclick="clearRFP()">&#10005; Clear Selection</button>
+  </div>
+</div>
+
+<!-- VENDOR DETAIL MODAL -->
+<div class="mo-ov" id="modal" onclick="closeMo(event)">
+  <div class="mo">
+    <div class="mo-hd">
+      <div class="mo-hd-l">
+        <div class="mo-eng-chip" id="moEng"></div>
+        <div class="mo-nm" id="moNm"></div>
+        <div class="mo-id-t" id="moId"></div>
+      </div>
+      <button class="mo-cls" onclick="closeModalD()">&#10005;</button>
+    </div>
+    <div class="mo-bod">
+      <div class="mo-sec">
+        <div class="mo-sec-t">&#128202; Performance Metrics</div>
+        <div class="mo-grid">
+          <div class="mo-fld"><div class="mo-fl">Trade Currency</div><div class="mo-fv" id="moCurrency"></div></div>
+          <div class="mo-fld"><div class="mo-fl">Purchase Orders</div><div class="mo-fv" id="moOrd"></div></div>
+          <div class="mo-fld"><div class="mo-fl">Vendor Tier</div><div class="mo-fv" id="moTier"></div></div>
+          <div class="mo-fld"><div class="mo-fl">Engagement Level</div><div class="mo-fv" id="moEngL"></div></div>
+        </div>
+          <div class="mo-fld"><div class="mo-fl">MSME Status</div><div class="mo-fv" id="moMSME"></div></div>
+        </div>
+        <div style="margin-top:9px"><div style="font-size:10px;color:var(--g5);margin-bottom:3px">Relative Engagement Score</div><div class="spbar"><div class="spfill" id="spFill" style="width:0%"></div></div></div>
+      </div>
+      <div class="mo-sec">
+        <div class="mo-sec-t">&#127991; Procurement Categories &amp; Sub-Categories</div>
+        <div id="moCats" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div class="mo-sec">
+        <div class="mo-sec-t">&#128295; Services &amp; Products Delivered</div>
+        <div class="svc-list" id="moSvcs"></div>
+      </div>
+      <div class="mo-acts">
+        <button class="btn-p" id="moRFPBtn" style="flex:1">&#9744; Add to RFP</button>
+        <button class="btn-p" id="moCloseToggleBtn" style="flex:1;background:var(--hc)">&#128683; Mark Closed</button>
+        <button class="btn-s" onclick="closeModalD()" style="flex:1">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RFP TEMPLATE MODAL -->
+<div class="mo-ov" id="rfpMo" onclick="if(event.target===this)closeRFPMo()">
+  <div class="rfp-mo">
+    <div class="rfp-mo-hd">
+      <div>
+        <div class="rfp-mo-title">&#128196; RFP Template Generated</div>
+        <div style="font-size:11px;opacity:.8;margin-top:3px">Copy this template and customize before sending to vendors</div>
+      </div>
+      <button class="mo-cls" onclick="closeRFPMo()">&#10005;</button>
+    </div>
+    <div class="rfp-mo-bod">
+      <pre class="rfp-template" id="rfpTemplateText"></pre>
+      <div class="rfp-mo-acts">
+        <button class="rfp-copy-btn" id="rfpCopyBtn" onclick="copyRFP()">&#128203; Copy to Clipboard</button>
+        <button class="btn-s" onclick="closeRFPMo()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-ov" id="loadingOverlay">
+  <div class="spin"></div>
+  <div class="loading-msg" id="loadingMsg">Loading vendor data&hellip;</div>
+</div>
+
+<!-- REFRESH TOAST -->
+<div class="refresh-toast" id="refreshToast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  DATA LAYER — dynamic loading from vendors.json
+//  To refresh: update vendors.json in the repo (or re-run extract_vendors.py)
+//  then click the ↻ Refresh button — no code change needed.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DATA_SRC = './vendors.json';          // relative path on GitHub Pages
+const AUTO_REFRESH_MS = 5 * 60 * 1000;     // auto-refresh every 5 minutes
+
+let VENDORS = [];           // populated asynchronously by loadVendors()
+let autoRefreshTimer = null;
+let mxOC = 1;               // max order count (for relative score bar)
+
+// ── Category icons for the restructured category list ──
+const CICO = {
+  'Workforce & HR':               '&#128101;',
+  'Facilities & Real Estate':     '&#127959;',
+  'IT & Digital':                 '&#128187;',
+  'Learning, Events & Engagement':'&#127891;',
+  'Food & Workplace':             '&#127869;',
+  'Travel & Logistics':           '&#9992;',
+  'Security & Safety':            '&#128274;',
+  'Professional & Advisory':      '&#128188;',
+  'Marketing & Merchandise':      '&#127873;',
+  'General Procurement':          '&#128722;',
+};
+
+const ECL = {
+  'Strategic Partner':'sp','Repeat Vendor':'rv',
+  'One-Time Vendor':'ot','Dormant Vendor':'ot'
+};
+const ELB = {
+  'Strategic Partner':'\u2B50 Strategic Partner',
+  'Repeat Vendor':'\u{1F501} Repeat Vendor',
+  'One-Time Vendor':'\u{1F539} One-Time Vendor',
+  'Dormant Vendor':'\uD83D\uDCA4 Dormant'
+};
+const TCL = {'HIGH':'hi','MEDIUM':'md','LOW':'lo'};
+
+// Currency flag/symbol lookup
+const CUR_FLAG = {
+  INR:'\u{1F1EE}\u{1F1F3}',USD:'\u{1F1FA}\u{1F1F8}',
+  EUR:'\u{1F1EA}\u{1F1FA}',GBP:'\u{1F1EC}\u{1F1E7}',
+  AUD:'\u{1F1E6}\u{1F1FA}',SGD:'\u{1F1F8}\u{1F1EC}',
+  AED:'\u{1F1E6}\u{1F1EA}'
+};
+
+// Market research external links (shown when search finds no empaneled match)
+const MR_SOURCES = {
+  default:[
+    {name:'Google',  ico:'\u{1F50D}',url:'https://www.google.com/search?q={q}+vendor+India+procurement+service+provider'},
+    {name:'IndiaMART',ico:'\u{1F6CD}\uFE0F',url:'https://www.indiamart.com/search.mp?ss={q}'},
+    {name:'LinkedIn',ico:'\u{1F465}',url:'https://www.linkedin.com/search/results/companies/?keywords={q}+India'},
+    {name:'TradeIndia',ico:'\u{1F4CB}',url:'https://www.tradeindia.com/search.html?search={q}'},
+    {name:'GeM Portal',ico:'\u{1F1EE}\u{1F1F3}',url:'https://bidplus.gem.gov.in/all-bids?searchedBid={q}'},
+  ]
+};
+
+let st = {q:'', flt:new Set(), cat:'', cur:[], fsi:-1, rfp:new Set()};
+
+// Permanently-closed vendors — persisted in localStorage so they survive page refresh
+let closedVendors = new Set(JSON.parse(localStorage.getItem('wmt_closed_vendors') || '[]'));
+function markClosed(vname)   { closedVendors.add(vname);    localStorage.setItem('wmt_closed_vendors',JSON.stringify([...closedVendors])); renderVendors(); }
+function unmarkClosed(vname) { closedVendors.delete(vname); localStorage.setItem('wmt_closed_vendors',JSON.stringify([...closedVendors])); renderVendors(); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  LOADING & REFRESH HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+function setLoading(on, msg) {
+  const ov = document.getElementById('loadingOverlay');
+  if (ov) ov.style.display = on ? 'flex' : 'none';
+  if (msg) { const m = document.getElementById('loadingMsg'); if (m) m.textContent = msg; }
+}
+
+function showToast(msg, isError) {
+  const el = document.getElementById('refreshToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.background = isError ? '#B71C1C' : '#1B5E20';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+function updateRefreshTs() {
+  const el = document.getElementById('lastRefreshedTs');
+  if (el) el.textContent = 'Data: ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})
+    + ', ' + new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+
+// Prepare vendor records: normalise names, compute mxOC
+function processVendors(raw) {
+  VENDORS = raw.filter(v => v && v.name);
+  VENDORS.forEach(v => { v._displayName = normName(v.name); });
+  mxOC = Math.max(1, ...VENDORS.map(v => v.orderCount || 0));
+  st.cur = [...VENDORS];
+}
+
+// ── Primary fetch: loads vendors.json with cache-busting ──
+async function loadVendors(isRefresh) {
+  setLoading(true, isRefresh ? 'Refreshing vendor data\u2026' : 'Loading vendor data\u2026');
+  const url = DATA_SRC + '?v=' + Date.now();
+  try {
+    const res = await fetch(url, {cache:'no-store'});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) throw new Error('Empty or invalid dataset');
+    processVendors(data);
+    updateRefreshTs();
+    buildCats();
+    renderVendors();
+    if (!isRefresh) setupSearch();
+    if (isRefresh) showToast('\u2713 Refreshed \u2014 ' + VENDORS.length + ' vendors loaded');
+  } catch (err) {
+    console.error('loadVendors:', err);
+    if (isRefresh) {
+      showToast('\u26A0 Refresh failed: ' + err.message, true);
+    } else {
+      const grid = document.getElementById('vgrid');
+      if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--hc)">'
+        + '<div style="font-size:32px;margin-bottom:12px">\u26A0</div>'
+        + '<div style="font-weight:700;font-size:15px">Could not load vendor data</div>'
+        + '<div style="font-size:12px;color:var(--g5);margin-top:6px">' + err.message + '</div>'
+        + '<button onclick="loadVendors(true)" style="margin-top:14px;padding:8px 18px;background:var(--wb);color:#fff;border:none;border-radius:6px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">\u21BB Try Again</button></div>';
+    }
+  } finally {
+    setLoading(false);
+  }
+}
+
+// Manual REFRESH button
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '\u21BB Refreshing\u2026'; }
+  await loadVendors(true);
+  if (btn) { btn.disabled = false; btn.textContent = '\u21BB Refresh'; }
+}
+
+// Start the 5-minute auto-refresh timer
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(() => loadVendors(true), AUTO_REFRESH_MS);
+}
+
+function websiteSearchURL(v) {
+  return v.website && v.website !== 'No website available'
+    ? v.website
+    : 'https://www.google.com/search?q=' + encodeURIComponent(v.name + ' official website India');
+}
+
+// Entry point
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('liveDate').textContent =
+    new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  loadVendors(false).then(() => startAutoRefresh());
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  CATEGORY SIDEBAR
+// ═══════════════════════════════════════════════════════════════════════════
+function buildCats() {
+  const cm = {};
+  VENDORS.forEach(v => { const c=(v.procurementCategory||'').trim(); if(c) cm[c]=(cm[c]||0)+1; });
+  const rows = [
+    ['\u{1F310} All Vendors', VENDORS.length, ''],
+    ...Object.entries(cm).sort((a,b)=>b[1]-a[1]).map(([c,n])=>[(CICO[c]||'\u{1F4CC}')+' '+c, n, c])
+  ];
+  const el = document.getElementById('catList'); el.innerHTML = '';
+  rows.forEach(([lbl,cnt,cat],i) => {
+    const d = document.createElement('div');
+    d.className = 'cat-row' + (i===0?' on':''); d.dataset.c = cat;
+    d.innerHTML = '<div class="cat-l"><span class="cat-nm">'+lbl+'</span></div><span class="cat-cnt">'+cnt+'</span>';
+    d.onclick = () => {
+      document.querySelectorAll('.cat-row').forEach(e=>e.classList.remove('on'));
+      d.classList.add('on'); st.cat=cat; st.q=''; setQ(''); hideSugg();
+      document.getElementById('sBanner').classList.remove('show');
+      document.getElementById('mrPanel').classList.remove('show');
+      renderVendors();
+    };
+    el.appendChild(d);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  FILTERS
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleFilter(f) {
+  const b=document.querySelector('.fc.'+f);
+  if(st.flt.has(f)){st.flt.delete(f);b.classList.remove('on');}
+  else{st.flt.add(f);b.classList.add('on');}
+  renderVendors();
+}
+function clearAllFilters() {
+  st.flt.clear(); document.querySelectorAll('.fc').forEach(b=>b.classList.remove('on'));
+  st.q=''; st.cat=''; setQ(''); hideSugg();
+  document.getElementById('sBanner').classList.remove('show');
+  document.getElementById('mrPanel').classList.remove('show');
+  document.querySelectorAll('.cat-row').forEach((e,i)=>e.classList.toggle('on',i===0));
+  renderVendors();
+}
+function setQ(v) {
+  const inp=document.getElementById('sInp'); inp.value=v;
+  document.getElementById('sClr').style.display=v?'block':'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SEARCH
+// ═══════════════════════════════════════════════════════════════════════════
+function setupSearch() {
+  const inp=document.getElementById('sInp');
+  // Clone to remove stale listeners from previous data loads
+  const ni=inp.cloneNode(true); inp.parentNode.replaceChild(ni,inp);
+  ni.addEventListener('input',()=>{
+    const q=ni.value.trim(); st.q=q;
+    document.getElementById('sClr').style.display=q?'block':'none';
+    if(q.length>=2) showSugg(q); else{hideSugg();document.getElementById('mrPanel').classList.remove('show');}
+    renderVendors(); updateBanner(q);
+  });
+  ni.addEventListener('keydown',e=>{
+    const d=document.getElementById('sugg'); const it=d.querySelectorAll('.sugg-row');
+    if(e.key==='ArrowDown'){e.preventDefault();st.fsi=Math.min(st.fsi+1,it.length-1);hlSugg(it);}
+    else if(e.key==='ArrowUp'){e.preventDefault();st.fsi=Math.max(st.fsi-1,-1);hlSugg(it);}
+    else if(e.key==='Enter'){e.preventDefault();if(st.fsi>=0&&it[st.fsi])it[st.fsi].click();else{hideSugg();renderVendors();}}
+    else if(e.key==='Escape') hideSugg();
+  });
+  document.addEventListener('click',e=>{if(!e.target.closest('.srch-wrap'))hideSugg();});
+}
+
+function updateBanner(q) {
+  const banner=document.getElementById('sBanner');
+  if(!q){banner.classList.remove('show');document.getElementById('mrPanel').classList.remove('show');return;}
+  const n=getFiltered().length;
+  const empLabel=n===1?'1 empaneled vendor':n+' empaneled vendors';
+  document.getElementById('sBTxt').innerHTML='<strong>'+empLabel+'</strong> in our database can support &ldquo;<strong>'+q+'</strong>&rdquo; &mdash; all shown below. Use &#9744; to select vendors for RFP.';
+  banner.classList.add('show');
+  showMRPanel(q);
+}
+function showMRPanel(q) {
+  const links=MR_SOURCES.default.map(s=>{
+    const url=s.url.replace('{q}',encodeURIComponent(q));
+    return '<a class="mr-link" href="'+url+'" target="_blank" rel="noopener"><span class="mr-link-ico">'+s.ico+'</span>'+s.name+'</a>';
+  }).join('');
+  document.getElementById('mrLinks').innerHTML=links;
+  document.getElementById('mrQuery').textContent=q;
+  document.getElementById('mrPanel').classList.add('show');
+}
+function clearSearch(){st.q='';setQ('');hideSugg();document.getElementById('sBanner').classList.remove('show');document.getElementById('mrPanel').classList.remove('show');renderVendors();}
+
+function showSugg(q) {
+  const d=document.getElementById('sugg'); const ql=q.toLowerCase(); st.fsi=-1;
+  const allC=[...new Set(VENDORS.map(v=>(v.procurementCategory||'').trim()).filter(Boolean))];
+  const mC=allC.filter(c=>c.toLowerCase().includes(ql)).slice(0,4);
+  const mV=VENDORS.filter(v=>
+    v.name.toLowerCase().includes(ql)||
+    (v.serviceTypes||'').toLowerCase().includes(ql)||
+    (v.procurementCategory||'').toLowerCase().includes(ql)||
+    (v.procurementSubCategory||'').toLowerCase().includes(ql)||
+    String(v.ids).includes(ql)
+  ).sort((a,b)=>{
+    const ae={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
+    return(ae[b.engagementLevel]||0)-(ae[a.engagementLevel]||0)||b.orderCount-a.orderCount;
+  }).slice(0,8);
+  let h='';
+  if(mC.length){
+    h+='<div class="sugg-hd">Categories</div>';
+    mC.forEach(c=>{
+      const n=VENDORS.filter(v=>(v.procurementCategory||'').includes(c)).length;
+      h+='<div class="sugg-row" onclick="selCat(\''+c.replace(/'/g,"\\'")+'\')'
+        +'"><span class="sugg-ico">'+(CICO[c]||'\u{1F4CC}')+'</span>'
+        +'<div class="sugg-info"><div class="sugg-nm">'+hlT(c,q)+'</div>'
+        +'<div class="sugg-mt">'+n+' vendors</div></div>'
+        +'<span class="ebdg ot" style="font-size:9px">Category</span></div>';
+    });
+  }
+  if(mV.length){
+    h+='<div class="sugg-hd">Vendors in our database</div>';
+    mV.forEach(v=>{
+      const ec=ECL[v.engagementLevel]||'ot';
+      const cats=(v.procurementCategory||'').trim();
+      const snm=v.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const dn=v._displayName||v.name;
+      const cur=v.currency||'INR';
+      const flag=CUR_FLAG[cur]||'';
+      h+='<div class="sugg-row" onclick="selVend(\''+snm+'\')">'
+        +'<span class="sugg-ico">\u{1F3ED}</span>'
+        +'<div class="sugg-info"><div class="sugg-nm">'+hlT(dn,q)+'</div>'
+        +'<div class="sugg-mt">'+cats+' &middot; '+v.orderCount+' orders &middot; '+flag+' '+cur+'</div></div>'
+        +'<span class="ebdg '+ec+'" style="font-size:9px">'+(ec==='sp'?'\u2B50 SP':ec==='rv'?'\u{1F501} RV':'\u{1F539} OT')+'</span></div>';
+    });
+  }
+  if(!h) h='<div class="sugg-row" style="cursor:default;justify-content:center;padding:14px"><span style="color:var(--g5);font-size:12px">No empaneled matches &mdash; use Market Research below &#8595;</span></div>';
+  d.innerHTML=h; d.style.display='block';
+}
+function hlSugg(items){items.forEach((e,i)=>e.classList.toggle('foc',i===st.fsi));if(st.fsi>=0)items[st.fsi].scrollIntoView({block:'nearest'});}
+function hideSugg(){document.getElementById('sugg').style.display='none';}
+function selCat(c){
+  st.cat=c; st.q=''; setQ(''); hideSugg();
+  document.getElementById('sBanner').classList.remove('show');
+  document.getElementById('mrPanel').classList.remove('show');
+  const el=[...document.querySelectorAll('.cat-row')].find(e=>e.dataset.c===c);
+  if(el){document.querySelectorAll('.cat-row').forEach(e=>e.classList.remove('on'));el.classList.add('on');}
+  renderVendors();
+}
+function selVend(n){st.q=n;setQ(n);hideSugg();renderVendors();updateBanner(n);}
+function hlT(t,q){if(!q)return t;return t.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SERVICE FILTER (removes fee/tax/logistics-only line items)
+// ═══════════════════════════════════════════════════════════════════════════
+const SVC_EXCLUDE_PATTERNS=[
+  /^bocw/i,/^bcow/i,/^bow charges/i,/bocw\s*(charges|cess|@|per|inspection)/i,/^1%\s*bocw/i,
+  /budget provision for statutory/i,
+  /^(advance\s+)?(income[\s-])?tax(\s|$)/i,/^gst\s*(refund|rebate|invoice|compliance)/i,
+  /^(central|indirect|direct)\s+tax/i,
+  /^(hk materials|pantry snacks|meal)\s+@?\d+%\s*(gst|tax|cess)/i,
+  /^(av equipment|hp service|supply of hp equipment)\s+@?\d+%?\s*(tax|gst|ftwz)/i,
+  /^additional local material supply @\d+%\s*tax/i,/^material supply @\d+%\s*tax/i,
+  /^other white goods @\d+%\s*tax/i,/^pantry and other white goods @\d+%\s*tax/i,
+  /^restroom white goods @\d+%\s*tax/i,/^pantry white goods @\d+%\s*tax/i,
+  /^procurement of stationery material\d+%?gst/i,/^relocation stay @\d+%\s*tax/i,
+  /^service tax interest/i,/^(printer\s+)?tcs charges/i,
+  /^service\s+fee\s*$/i,/^service\s+charge\s*$/i,/^service\s+charges?\s*(@\d+%)?$/i,
+  /^(agency|management|mgmt|retainer|resource|program|subscription)\s+fee\s*(@?\d+%?)?$/i,
+  /^(agency|management|mgmt)\s+fees?\s*(@?\d+%?)?$/i,
+  /^management\s+(service\s+)?fee\s*(@\s*\d+\s*%)?$/i,/^mangement\s+fees?\s*(@\d+%)?$/i,
+  /^professional\s+fee\s*$/i,/^other\s+charges?\s*$/i,
+  /^statutory\s+(fees?\s*\(reimbursement\)|compliance(\s*\(10%\)|\s*-\s*bonus)?|components)$/i,
+  /^(budget\s+)?provision\s+for\s+statutory/i,
+  /^(air\s+)?freight(\s+and\s+(handling|installation))?\s+charges?\s*$/i,
+  /^(packing\s+(&|and)\s+forwarding|packing|packaging)\s+charges?\s*$/i,
+  /^courier\s+charges?\s*(\(\s*at\s+actuals\s*\))?$/i,/^delivery\s+charges?\s*$/i,
+  /^shipping\s+charges?\s*$/i,/^cif\s+charges?\s*(up\s+to\s+the\s+nearest\s+airport)?$/i,
+  /^(asset\s+movement|removal|cancellation|night\s+halt)\s+charges?\s*$/i,
+  /^toll\s+(and\s+(parking|other)\s+)?charges?\s*(@0%)?$/i,/^toll\s+and\s+parking\s+charges?\s*$/i,
+  /^transport(at?ion)?\s+charges?\s*$/i,/^transporartion\s+charges?\s*$/i,
+  /^(power|electricity|utility|water|eb|dg|hvac|cam|wcp)\s+charges?\s*(-\s*pw\d+)?\s*$/i,
+  /^utility\s+charges?\s*\(\s*eb\s*(&|and)\s*water\s*\)/i,
+  /^cam\s+charges?\s+(for\s+kitchen|-\s*pw\d+)?$/i,
+  /^(rackspace|infra)\s+charges?\s*(yearly)?$/i,/^power\s+charges\s+based\s+on\s+actuals/i,
+  /^installation\s+charges?\s*$/i,/^handling\s+charges?\s*(-\s*10%)?$/i,
+  /^(click|print\s+click)\s+charges?/i,/^device\s+charges?\s*$/i,
+  /^visa\s+fee(\s+in\s+inr)?$/i,/^\d+%?\s*handling\s+charges?/i,
+  /^(payable\s+as\s+)?subscription\s+fees?\s*(to\s+ima)?$/i,
+  /^(en3\s+payment|payment)\s+processing\s*$/i,/^enhancement\s+charges\s+at\s+actuals\s*$/i,
+  /^medical\s+waste\s+management\s+charges?\s*$/i,
+  /^charges\s+for\s+(de-sludging|removal\s+of\s+de-sludge)/i,
+  /^cgl\s+and\s+car\s+charges?\s*$/i,/^agent\s+refilling\s+charges?\s*$/i,
+];
+function isExcludedService(svc){const s=svc.trim();if(!s||s.length<2)return true;return SVC_EXCLUDE_PATTERNS.some(re=>re.test(s));}
+function filterServices(raw){const svcs=[...new Set((raw||'').split(',').map(s=>s.trim()).filter(Boolean))];return svcs.filter(s=>!isExcludedService(s));}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  NAME NORMALIZER
+// ═══════════════════════════════════════════════════════════════════════════
+const CAPS_WORDS=['IIT','IIM','NIT','IISC','IIMB','IIMA','IIMK','BITS','HCL','IBM','TCS','SAP','AWS','ERP','CRM','BPO','LLP','LLC','INC','KPMG','AV','IT','HR','AI','ML','API','UI','UX'];
+function normName(name){
+  if(!name)return name;
+  return name.split(' ').map(word=>{
+    const up=word.toUpperCase().replace(/[^A-Z]/g,'');
+    if(CAPS_WORDS.includes(up)||CAPS_WORDS.includes(word.toUpperCase()))return word.toUpperCase();
+    return word;
+  }).join(' ');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  FILTER LOGIC
+// ═══════════════════════════════════════════════════════════════════════════
+function getFiltered(){
+  let l=[...VENDORS];
+  if(st.cat) l=l.filter(v=>(v.procurementCategory||'').trim()===st.cat);
+  if(st.q){
+    const ql=st.q.toLowerCase();
+    l=l.filter(v=>
+      v.name.toLowerCase().includes(ql)||
+      (v.serviceTypes||'').toLowerCase().includes(ql)||
+      (v.procurementCategory||'').toLowerCase().includes(ql)||
+      (v.procurementSubCategory||'').toLowerCase().includes(ql)||
+      String(v.ids).includes(ql)||
+      (v.currency||'').toLowerCase().includes(ql)||
+      (v.engagementLevel||'').toLowerCase().includes(ql)||
+      (v.tier||'').toLowerCase().includes(ql)||
+      String(v.orderCount).includes(ql)
+    );
+  }
+  const ea=['sp','rv','ot'].filter(f=>st.flt.has(f));
+  if(ea.length){const m={sp:'Strategic Partner',rv:'Repeat Vendor',ot:'One-Time Vendor'};l=l.filter(v=>ea.some(f=>v.engagementLevel===m[f]));}
+  const ta=['hi','md','lo'].filter(f=>st.flt.has(f));
+  if(ta.length){const m={hi:'HIGH',md:'MEDIUM',lo:'LOW'};l=l.filter(v=>ta.some(f=>v.tier===m[f]));}
+  return l;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════════════════
+function renderVendors(){
+  const sort=document.getElementById('sortSel').value;
+  let l=getFiltered();
+  if(sort==='ord') l.sort((a,b)=>b.orderCount-a.orderCount);
+  else if(sort==='az') l.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(sort==='za') l.sort((a,b)=>b.name.localeCompare(a.name));
+  else{const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};l.sort((a,b)=>(eo[b.engagementLevel]||0)-(eo[a.engagementLevel]||0)||b.orderCount-a.orderCount);}
+  st.cur=l;
+  const sp=l.filter(v=>v.engagementLevel==='Strategic Partner').length;
+  const rv=l.filter(v=>v.engagementLevel==='Repeat Vendor').length;
+  const ot=l.filter(v=>v.engagementLevel==='One-Time Vendor').length;
+  const cats=new Set(l.map(v=>(v.procurementCategory||'').trim()).filter(Boolean));
+  const multiCur=l.filter(v=>v.currency&&v.currency!=='INR').length;
+  document.getElementById('stTotal').textContent=l.length;
+  document.getElementById('stSP').textContent=sp;
+  document.getElementById('stRV').textContent=rv;
+  document.getElementById('stOT').textContent=ot;
+  document.getElementById('stCats').textContent=cats.size;
+  document.getElementById('stMultiCur').textContent=multiCur;
+  document.getElementById('conTitle').textContent=st.cat||'All Vendors';
+  document.getElementById('conMeta').textContent=l.length+' vendor'+(l.length!==1?'s':'')+' \u00B7 '+cats.size+' categor'+(cats.size!==1?'ies':'y');
+  const grid=document.getElementById('vgrid'); const empt=document.getElementById('empty');
+  if(!l.length){grid.innerHTML='';empt.style.display='block';return;}
+  empt.style.display='none';
+  const q=st.q;
+  let sectionHtml='';
+  if(q) sectionHtml='<div class="section-line">\u2705 Empaneled Vendors \u2014 '+l.length+' vendor'+(l.length!==1?'s':'')+' from Walmart India database with past engagement in this service. Select any below for RFP.</div>';
+  const cardsHtml=l.map(v=>{
+    const ec=ECL[v.engagementLevel]||'ot';
+    const tc=TCL[v.tier]||'lo';
+    const cats2=[(v.procurementCategory||'').trim()].filter(Boolean);
+    const sc=[(v.procurementSubCategory||'').trim()].filter(Boolean);
+    const svcs=filterServices(v.serviceTypes);
+    const ini=v.name.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'V';
+    const cT=cats2.map(c=>'<span class="ctag">'+(CICO[c]||'')+' '+c+'</span>').join('');
+    const sT=sc.map(s=>'<span class="sctag">\u2192 '+s+'</span>').join('');
+    const dispNm=v._displayName||v.name;
+    const nm2=q?hlT(dispNm,q):dispNm;
+    const sn=v.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const isSelected=st.rfp.has(v.name);
+    const isClosed=closedVendors.has(v.name);
+    const SHOW=5;
+    const visibleSvcs=svcs.slice(0,SHOW); const hiddenSvcs=svcs.slice(SHOW);
+    const vcId='vc-'+btoa(unescape(encodeURIComponent(v.name))).replace(/[^a-zA-Z0-9]/g,'').slice(0,20);
+    const svcChips=visibleSvcs.map(s=>'<span class="svc-chip">'+(q?hlT(s,q):s)+'</span>').join('');
+    const moreBtn=hiddenSvcs.length?'<span class="svc-chip-more" onclick="toggleMoreSvcs(\''+vcId+'\')">+'+hiddenSvcs.length+' more &#9660;</span>':'';
+    const hiddenChips=hiddenSvcs.length?'<span id="'+vcId+'-more" style="display:none;flex-wrap:wrap;gap:3px">'+hiddenSvcs.map(s=>'<span class="svc-chip">'+(q?hlT(s,q):s)+'</span>').join('')+'<span class="svc-chip-more" onclick="toggleMoreSvcs(\''+vcId+'\')">&#9650; less</span></span>':'';
+    const noSvcs=svcs.length===0?'<span style="font-size:10px;color:var(--g5);font-style:italic">No service history recorded</span>':'';
+    const closedBanner=isClosed?'<div class="closed-banner">&#128683; PERMANENTLY CLOSED<div class="closed-banner-sub">Based on market research &mdash; do not engage. Click &ldquo;Reactivate&rdquo; to undo.</div></div>':'';
+    const closedDim=isClosed?'pointer-events:none;opacity:.55':'';
+    const rfpDisabled=isClosed?'disabled style="opacity:.4;pointer-events:none"':'';
+    const cur=v.currency||'INR'; const flag=CUR_FLAG[cur]||'';
+    const hasWeb=v.website&&v.website!=='No website available'&&!v.website.includes('No website');
+    const webIco=hasWeb?'<a class="vc-website-ico" href="'+v.website+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="Visit website">&#127760;</a>':'';
+    const closedActionBtn=isClosed
+      ?'<button class="act-btn unmark-closed" onclick="event.stopPropagation();unmarkClosed(\''+sn+'\')" style="flex:1;justify-content:center">&#9654; Reactivate</button>'
+      :'<button class="act-btn mark-closed" onclick="event.stopPropagation();if(confirm(\'Mark '+dispNm+' as PERMANENTLY CLOSED?\'))markClosed(\''+sn+'\')" style="flex:1;justify-content:center">&#128683; Mark Closed</button>';
+    return '<div class="vcard '+ec+(isSelected?' rfp-selected':'')+(isClosed?' closed':'')+'" id="'+vcId+'">\n'
+      +closedBanner+'\n'
+      +'<div class="vc-top" style="'+closedDim+'"><div class="vc-av">'+ini+'</div>'
+      +'<div class="vc-inf"><div class="vc-nm" style="display:flex;align-items:center;gap:4px">'
+      +'<span onclick="openMo(\''+sn+'\')" title="'+dispNm+'" style="cursor:pointer;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nm2+'</span>'
+      +webIco+'</div>'
+      +'<div class="vc-id">ID: '+v.ids+'</div></div>'
+      +'<span class="ebdg '+ec+'">'+(ELB[v.engagementLevel]||v.engagementLevel)+'</span></div>\n'
+      +'<div class="vc-cats" style="'+closedDim+'">'+cT+sT+'</div>\n'
+      +'<div class="vc-svcs" style="'+closedDim+'">'
+      +'<div class="vc-svcs-lbl" onclick="var l=this.nextElementSibling;var op=l.classList.toggle(\'svc-open\');this.querySelector(\'.vc-svcs-lbl-arrow\').textContent=op?\'&#9652;\':\'&#9662;\'">'
+      +'&#128295; Services &amp; Products Delivered<span class="vc-svcs-lbl-arrow">&#9662;</span></div>'
+      +'<div class="vc-svcs-list">'+svcChips+moreBtn+hiddenChips+noSvcs+'</div></div>\n'
+      +'<div class="vc-met" style="'+closedDim+'">'
+      +'<div class="met"><div class="met-v">'+v.orderCount+'</div><div class="met-l">PO Orders</div></div>'
+      +'<div class="met"><div class="met-v" style="font-size:11px">'+flag+' '+cur+'</div><div class="met-l">Trade Currency</div></div>'
+      +'<div class="met"><div class="met-v">'+(svcs.length||'&mdash;')+'</div><div class="met-l">Service Items</div></div>'
+      +'</div>\n'
+      +'<div class="vc-actions">'
+      +'<label style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:4px 6px;border-radius:6px;border:1px solid var(--g3);background:#fff;cursor:pointer;font-size:10px;font-weight:600;color:var(--g5)">'
+      +'<input type="checkbox" class="rfp-check" '+(isSelected?'checked':'')+' '+rfpDisabled+' onchange="toggleRFP(\''+sn+'\',this.checked)" style="accent-color:var(--wb)"> RFP</label>'
+      +'<button class="det-btn" onclick="openMo(\''+sn+'\')" style="flex:1;text-align:center">&#128203; Full Profile &#8594;</button>'
+      +'<span style="flex:1;display:flex">'+closedActionBtn+'</span>'
+      +'</div>\n</div>';
+  }).join('');
+  grid.innerHTML=sectionHtml+cardsHtml;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  RFP
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleRFP(name,checked){if(checked)st.rfp.add(name);else st.rfp.delete(name);renderVendors();updateRFPBar();}
+function updateRFPBar(){
+  const bar=document.getElementById('rfpBar'); const cnt=st.rfp.size;
+  if(cnt>0){document.getElementById('rfpCount').textContent=cnt;document.getElementById('rfpBarTxt').textContent='vendor'+(cnt!==1?'s':'')+' selected for RFP';bar.classList.add('show');}
+  else bar.classList.remove('show');
+}
+function clearRFP(){st.rfp.clear();renderVendors();document.getElementById('rfpBar').classList.remove('show');}
+function generateRFP(){
+  const selected=VENDORS.filter(v=>st.rfp.has(v.name));
+  if(!selected.length)return;
+  const date=new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'});
+  const cats=[...new Set(selected.map(v=>(v.procurementCategory||'').trim()))].filter(Boolean).slice(0,3).join(', ');
+  const vendorList=selected.map((v,i)=>'   '+(i+1)+'. '+v.name+' (ID: '+v.ids+')').join('\n');
+  const line='\u2500'.repeat(43);
+  const template='Subject: Request for Proposal (RFP) \u2014 '+(cats||'Services')+' | Walmart India\n\n'
+    +'Dear Sir / Madam,\n\nWe at Walmart Global Tech India are inviting your esteemed organization to submit a\nproposal for the following requirement:\n\n'
+    +'REQUIREMENT\n'+line+'\nService / Product Category : '+(cats||'[SPECIFY CATEGORY]')+'\nScope                      : '+(st.q||'[SPECIFY SERVICE/PRODUCT]')+'\nDelivery Location          : Bengaluru / Chennai, India\nExpected Start Date        : [DD-MMM-YYYY]\nContract Period            : [DURATION]\n\n'
+    +'RFP ISSUED TO\n'+line+'\n'+vendorList+'\n\n'
+    +'SUBMISSION REQUIREMENTS\n'+line+'\nPlease submit your proposal including:\n  1. Technical Capability & Team Profile\n  2. Relevant Case Studies / Past Experience\n  3. Commercial Proposal (inclusive of all taxes)\n  4. Delivery Timeline & Milestones\n  5. References from similar engagements\n\n'
+    +'SUBMISSION DEADLINE\n'+line+'\nDate    : [DD-MMM-YYYY]\nContact : [YOUR NAME] | [EMAIL] | [PHONE]\nSubmit  : [SUBMISSION METHOD / EMAIL / PORTAL]\n\n'
+    +'EVALUATION CRITERIA\n'+line+'\n  \u2022 Technical Fit & Experience   : 40%\n  \u2022 Commercial Competitiveness   : 35%\n  \u2022 Team & Delivery Capability   : 15%\n  \u2022 References & Compliance      : 10%\n\n'
+    +'This RFP does not constitute a commitment to award. Walmart India reserves the\n'
+    +'right to accept or reject any or all proposals without assigning any reason.\n\n'
+    +'We look forward to your participation.\n\nRegards,\n[YOUR NAME]\nProcurement Team | Walmart Global Tech India\nDate: '+date+'\n';
+  document.getElementById('rfpTemplateText').textContent=template;
+  document.getElementById('rfpMo').classList.add('open');document.body.style.overflow='hidden';
+}
+function copyRFP(){
+  const t=document.getElementById('rfpTemplateText').textContent;
+  navigator.clipboard.writeText(t).then(()=>{
+    const b=document.getElementById('rfpCopyBtn');b.textContent='\u2705 Copied!';
+    setTimeout(()=>b.textContent='\u{1F4CB} Copy to Clipboard',2000);
+  });
+}
+function closeRFPMo(){document.getElementById('rfpMo').classList.remove('open');document.body.style.overflow='';}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  VENDOR DETAIL MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function openMo(nm){
+  const v=VENDORS.find(x=>x.name===nm);if(!v)return;
+  const tc=TCL[v.tier]||'lo';
+  const spPct=Math.round(Math.min(100,(v.orderCount/mxOC)*100));
+  const cur=v.currency||'INR'; const flag=CUR_FLAG[cur]||'';
+  document.getElementById('moEng').textContent=ELB[v.engagementLevel]||v.engagementLevel;
+  document.getElementById('moNm').textContent=v._displayName||v.name;
+  document.getElementById('moId').textContent='Vendor ID: '+v.ids;
+  document.getElementById('moOrd').textContent=v.orderCount+' purchase orders';
+  document.getElementById('moTier').innerHTML='<span style="font-weight:700;color:'+(tc==='hi'?'var(--hc)':tc==='md'?'var(--mc)':'var(--lc)')+'">'+v.tier+'</span>';
+  document.getElementById('moEngL').textContent=v.engagementLevel;
+  document.getElementById('moCurrency').textContent=flag+' '+cur;
+  document.getElementById('moMSME').textContent=v.msme||'\u2014';
+  const f=document.getElementById('spFill');
+  f.style.background=tc==='hi'?'var(--hc)':tc==='md'?'var(--mc)':'var(--lc)';
+  setTimeout(()=>f.style.width=spPct+'%',60);
+  const cats2=[(v.procurementCategory||'').trim()].filter(Boolean);
+  const sc=[(v.procurementSubCategory||'').trim()].filter(Boolean);
+  document.getElementById('moCats').innerHTML=
+    cats2.map(c=>'<span class="ctag" style="font-size:11px;padding:4px 10px">'+(CICO[c]||'\u{1F4CC}')+' '+c+'</span>').join('')+
+    sc.map(s=>'<span class="sctag" style="font-size:11px;padding:4px 10px">\u2192 '+s+'</span>').join('');
+  const sv=filterServices(v.serviceTypes).slice(0,20);
+  document.getElementById('moSvcs').innerHTML=sv.map(s=>'<div class="svc-it">'+s+'</div>').join('')||'<div class="svc-it" style="color:var(--g5)">No service history on file</div>';
+  const moCloseBtn=document.getElementById('moCloseToggleBtn');
+  if(closedVendors.has(v.name)){
+    moCloseBtn.textContent='\u25B6 Reactivate Vendor';moCloseBtn.style.background='var(--sc)';
+    moCloseBtn.onclick=()=>{unmarkClosed(v.name);closeModalD();};
+  } else {
+    moCloseBtn.textContent='\u{1F6AB} Mark Permanently Closed';moCloseBtn.style.background='var(--hc)';
+    moCloseBtn.onclick=()=>{if(confirm('Mark '+v.name+' as PERMANENTLY CLOSED?')){markClosed(v.name);closeModalD();}};
+  }
+  const isSelected=st.rfp.has(v.name);
+  const rfpBtn=document.getElementById('moRFPBtn');
+  rfpBtn.textContent=isSelected?'\u2714 Remove from RFP':'\u2610 Add to RFP';
+  rfpBtn.style.background=isSelected?'var(--sc)':'var(--wb)';
+  rfpBtn.onclick=()=>{
+    const sel=!st.rfp.has(v.name);if(sel)st.rfp.add(v.name);else st.rfp.delete(v.name);
+    rfpBtn.textContent=sel?'\u2714 Remove from RFP':'\u2610 Add to RFP';
+    rfpBtn.style.background=sel?'var(--sc)':'var(--wb)';
+    updateRFPBar();renderVendors();
+  };
+  document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';
+}
+function closeMo(e){if(e.target===document.getElementById('modal'))closeModalD();}
+function closeModalD(){document.getElementById('modal').classList.remove('open');document.body.style.overflow='';}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SERVICES EXPAND/COLLAPSE
+// ═══════════════════════════════════════════════════════════════════════════
+function toggleMoreSvcs(vcId){
+  const el=document.getElementById(vcId+'-more');if(!el)return;
+  const visible=el.style.display!=='none';el.style.display=visible?'none':'flex';
+  const card=document.getElementById(vcId);
+  if(card){const moreBtn=card.querySelector('.svc-chip-more:not([id])');if(moreBtn)moreBtn.style.display=visible?'inline-flex':'none';}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════════════════════════
+function fmtV(n){if(!n||n===0)return '\u2014';if(n>=10000000)return(n/10000000).toFixed(2)+' Cr';if(n>=100000)return(n/100000).toFixed(1)+' L';if(n>=1000)return(n/1000).toFixed(0)+' K';return Math.round(n).toLocaleString();}
+function fmtB(n){if(!n)return '0';if(n>=10000000)return(n/10000000).toFixed(1)+' Cr';if(n>=100000)return(n/100000).toFixed(0)+' L';return Math.round(n).toLocaleString();}
+function exportCSV(){
+  const l=st.cur;
+  const h=['Vendor Name','Vendor IDs','Engagement Level','Tier','Order Count','Trade Currency','Procurement Category','Procurement Sub-Category','MSME','Services Delivered','Selected for RFP'];
+  const r=l.map(v=>['"'+v.name+'"','"'+v.ids+'"','"'+v.engagementLevel+'"','"'+v.tier+'"',
+    v.orderCount,'"'+(v.currency||'INR')+'"','"'+(v.procurementCategory||'')+'"',
+    '"'+(v.procurementSubCategory||'')+'"','"'+(v.msme||'')+'"',
+    '"'+((v.serviceTypes||'').replace(/"/g,"'").slice(0,200))+'"',
+    st.rfp.has(v.name)?'Yes':'No']);
+  const csv=['\uFEFF'+h.join(','),...r.map(x=>x.join(','))].join('\n');
+  const b=new Blob([csv],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);
+  const a=document.createElement('a');a.href=u;a.download='walmart_india_vendors_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();URL.revokeObjectURL(u);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SHARE / MODALS
+// ═══════════════════════════════════════════════════════════════════════════
+function openShareModal(){
+  document.getElementById('shareUrl').value='https://aastha-2026.github.io/vendor-intelligence-dashboard/';
+  document.getElementById('shareModal').classList.add('open');
+}
+function closeShareModal(){document.getElementById('shareModal').classList.remove('open');}
+function openRFPHelp(){document.getElementById('rfpHelpModal').classList.add('open');}
+function closeRFPHelp(){document.getElementById('rfpHelpModal').classList.remove('open');}
+function copyShareLink(){
+  var ta=document.getElementById('shareUrl');ta.select();
+  try{navigator.clipboard.writeText(ta.value).catch(function(){document.execCommand('copy');});}
+  catch(e){document.execCommand('copy');}
+  closeShareModal();
+  var toast=document.getElementById('shareToast');toast.classList.add('show');
+  setTimeout(function(){toast.classList.remove('show');},2800);
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeShareModal();closeRFPHelp();}});
+</script>
+</body>
+</html>
