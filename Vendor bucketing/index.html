@@ -597,7 +597,8 @@ async function loadVendors(isRefresh) {
   setLoading(true, isRefresh ? 'Refreshing vendor data\u2026' : 'Loading vendor data\u2026');
 
   // On initial load: use inline data from vendors-data.js (works on file://).
-  // On REFRESH: try fetch for latest data, fall back to inline if offline.
+  // On REFRESH via file:// protocol: fetch() is blocked, so re-render from in-memory data.
+  const isFileProtocol = location.protocol === 'file:';
   if (!isRefresh && window.__VENDOR_DATA__ && window.__VENDOR_DATA__.length) {
     try {
       processVendors(window.__VENDOR_DATA__);
@@ -605,6 +606,23 @@ async function loadVendors(isRefresh) {
       buildCats();
       renderVendors();
       setupSearch();
+    } finally {
+      setLoading(false);
+    }
+    return;
+  }
+
+  if (isRefresh && isFileProtocol) {
+    // Can't fetch on file://, just re-render what we have
+    try {
+      const data = window.__VENDOR_DATA__;
+      if (data && data.length) {
+        processVendors(data);
+        updateRefreshTs();
+        buildCats();
+        renderVendors();
+        showToast('\u2713 Data is current \u2014 ' + VENDORS.length + ' vendors');
+      }
     } finally {
       setLoading(false);
     }
@@ -627,16 +645,16 @@ async function loadVendors(isRefresh) {
   } catch (err) {
     console.error('loadVendors:', err);
     if (isRefresh) {
-      // Refresh failed — fall back to currently loaded data
+      // Fetch failed on https:// — fall back to currently loaded data
       if (VENDORS.length) {
-        showToast('\u26A0 Refresh failed (using cached data): ' + err.message, true);
+        showToast('\u26A0 Could not reach server, showing current data', true);
       } else if (window.__VENDOR_DATA__ && window.__VENDOR_DATA__.length) {
         processVendors(window.__VENDOR_DATA__);
         updateRefreshTs();
         buildCats();
         renderVendors();
         setupSearch();
-        showToast('\u26A0 Fetch failed, loaded from local copy', true);
+        showToast('\u26A0 Could not reach server, loaded local copy', true);
       } else {
         showToast('\u26A0 Refresh failed: ' + err.message, true);
       }
