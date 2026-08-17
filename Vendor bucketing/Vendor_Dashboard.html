@@ -793,50 +793,99 @@ function showMRPanel(q) {
 function clearSearch(){st.q='';setQ('');hideSugg();document.getElementById('sBanner').classList.remove('show');document.getElementById('mrPanel').classList.remove('show');renderVendors();}
 
 function showSugg(q) {
-  const d=document.getElementById('sugg'); const ql=q.toLowerCase(); st.fsi=-1;
-  const allC=[...new Set(VENDORS.map(v=>(v.procurementCategory||'').trim()).filter(Boolean))];
-  const mC=allC.filter(c=>c.toLowerCase().includes(ql)).slice(0,4);
-  const mV=VENDORS.filter(v=>
-    v.name.toLowerCase().includes(ql)||
-    (v.serviceTypes||'').toLowerCase().includes(ql)||
-    (v.procurementCategory||'').toLowerCase().includes(ql)||
-    (v.procurementSubCategory||'').toLowerCase().includes(ql)||
-    String(v.ids).includes(ql)
-  ).sort((a,b)=>{
-    const ae={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
-    return(ae[b.engagementLevel]||0)-(ae[a.engagementLevel]||0)||b.orderCount-a.orderCount;
-  }).slice(0,8);
+  const d=document.getElementById('sugg');
+  const ql=q.toLowerCase().trim();
+  st.fsi=-1;
+
+  // Expand query into semantic intents
+  const expanded=expandQuery(ql);
+
   let h='';
-  if(mC.length){
-    h+='<div class="sugg-hd">Categories</div>';
-    mC.forEach(c=>{
-      const n=VENDORS.filter(v=>(v.procurementCategory||'').includes(c)).length;
-      h+='<div class="sugg-row" onclick="selCat(\''+c.replace(/'/g,"\\'")+'\')'
-        +'"><span class="sugg-ico">'+(CICO[c]||'\u{1F4CC}')+'</span>'
-        +'<div class="sugg-info"><div class="sugg-nm">'+hlT(c,q)+'</div>'
-        +'<div class="sugg-mt">'+n+' vendors</div></div>'
-        +'<span class="ebdg ot" style="font-size:9px">Category</span></div>';
+
+  // ── Intent-based category suggestions ──
+  if(expanded.length){
+    h+='<div class="sugg-hd">&#129302; Matched Categories</div>';
+    const shownCats=new Set();
+    expanded.slice(0,4).forEach(({intent,sim,matchedTerm})=>{
+      if(shownCats.has(intent.label)) return;
+      shownCats.add(intent.label);
+      // Find vendors in this intent's categories
+      const intentVendorCount=VENDORS.filter(v=>
+        intent.cats.some(c=>(v.procurementCategory||'').toLowerCase().includes(c.toLowerCase()))||
+        intent.subCats.some(s=>(v.procurementSubCategory||'').toLowerCase().includes(s.toLowerCase())||(v.serviceTypes||'').toLowerCase().includes(s.toLowerCase()))
+      ).length;
+      const catKey=intent.cats[0]||'';
+      h+='<div class="sugg-row sugg-intent" onclick="semanticSearch(\''+intent.label.replace(/'/g,"\\'")+'\')">'
+        +'<span class="sugg-ico">'+(CICO[catKey]||'\uD83D\uDCCC')+'</span>'
+        +'<div class="sugg-info"><div class="sugg-nm">'+intent.label+'</div>'
+        +'<div class="sugg-reason">Matched: &ldquo;'+matchedTerm+'&rdquo; &rarr; '+intent.label+'</div>'
+        +'<div class="sugg-mt">~'+intentVendorCount+' vendors &middot; '+(sim===100?'Exact':'~'+sim+'% match')+'</div></div>'
+        +'<span class="ebdg sp" style="font-size:9px">Intent</span></div>';
     });
   }
-  if(mV.length){
-    h+='<div class="sugg-hd">Vendors in our database</div>';
-    mV.forEach(v=>{
+
+  // ── Top vendor suggestions (scored) ──
+  const topVendors=VENDORS.map(v=>{
+    const {score,reason}=scoreVendor(v,ql,expanded);
+    return score>0?{v,score,reason}:null;
+  }).filter(Boolean)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,6);
+
+  if(topVendors.length){
+    h+='<div class="sugg-hd">&#127968; Top Matched Vendors</div>';
+    topVendors.forEach(({v,score,reason})=>{
       const ec=ECL[v.engagementLevel]||'ot';
       const cats=(v.procurementCategory||'').trim();
       const snm=v.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const dn=v._displayName||v.name;
       const cur=v.currency||'INR';
-      const flag=CUR_FLAG[cur]||'';
+      const scoreBar=score>=90?'&#11088;':score>=70?'&#128312;':'&#128309;';
       h+='<div class="sugg-row" onclick="selVend(\''+snm+'\')">'
-        +'<span class="sugg-ico">\u{1F3ED}</span>'
+        +'<span class="sugg-ico">&#127968;</span>'
         +'<div class="sugg-info"><div class="sugg-nm">'+hlT(dn,q)+'</div>'
+        +(reason?'<div class="sugg-reason">'+reason+'</div>':'')
         +'<div class="sugg-mt">'+cats+' &middot; '+v.orderCount+' orders &middot; '+cur+'</div></div>'
-        +'<span class="ebdg '+ec+'" style="font-size:9px">'+(ec==='sp'?'\u2B50 SP':ec==='rv'?'\u{1F501} RV':'\u{1F539} OT')+'</span></div>';
+        +'<span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">'
+        +'<span class="ebdg '+ec+'" style="font-size:9px">'+(ec==='sp'?'\u2B50 SP':ec==='rv'?'\u{1F501} RV':'\u{1F539} OT')+'</span>'
+        +'<span style="font-size:9px;color:var(--g5)">'+scoreBar+' '+score+'</span>'
+        +'</span></div>';
     });
   }
+
+  // ── "Did you mean" suggestions when low/no confidence ──
+  const didYouMean=INTENT_MAP
+    .map(intent=>{
+      const best=ql.split(/\s+/).reduce((mx,tok)=>
+        Math.max(mx,...intent.terms.map(t=>fuzzySim(tok,t))),0);
+      return{intent,best};
+    })
+    .filter(x=>x.best>=65&&x.best<80)
+    .sort((a,b)=>b.best-a.best)
+    .slice(0,4);
+
+  if(!topVendors.length&&didYouMean.length){
+    h+='<div class="dym-row"><div class="dym-lbl">&#128269; Did you mean?</div><div class="dym-chips">'
+      +didYouMean.map(x=>'<span class="dym-chip" onclick="semanticSearch(\''+x.intent.label.replace(/'/g,"\\'")+'\')">'
+      +x.intent.label+'</span>').join('')
+      +'</div></div>';
+  }
+
   if(!h) h='<div class="sugg-row" style="cursor:default;justify-content:center;padding:14px"><span style="color:var(--g5);font-size:12px">No empaneled matches &mdash; use Market Research below &#8595;</span></div>';
+
   d.innerHTML=h; d.style.display='block';
 }
+
+// Semantic search by intent label (called from suggestion clicks)
+function semanticSearch(label) {
+  const intent=INTENT_MAP.find(i=>i.label===label);
+  if(!intent) return;
+  // Use the primary term as the search query
+  const term=intent.terms[0];
+  st.q=label; setQ(label); hideSugg();
+  renderVendors(); updateBanner(label);
+}
+
 function hlSugg(items){items.forEach((e,i)=>e.classList.toggle('foc',i===st.fsi));if(st.fsi>=0)items[st.fsi].scrollIntoView({block:'nearest'});}
 function hideSugg(){document.getElementById('sugg').style.display='none';}
 function selCat(c){
@@ -911,29 +960,214 @@ function normName(name){
 // ═══════════════════════════════════════════════════════════════════════════
 //  FILTER LOGIC
 // ═══════════════════════════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SEMANTIC SEARCH ENGINE — intent mapping, fuzzy matching, scored ranking
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Intent map: user vocabulary → procurement labels + categories
+const INTENT_MAP = [
+  { terms:['event','events','celebration','townhall','town hall','summit','meetup',
+           'meet up','conference','offsite','off site','inauguration','launch',
+           'engagement','annual day','meeting','gathering','converge','kickoff',
+           'kick-off','carnival','fest','festival','ceremony','gala','award',
+           'awards','recognition','party','parties','outing','team outing'],
+    cats:['Learning, Events & Engagement'], subCats:['EVENT','Corporate Events'], label:'Corporate Events' },
+  { terms:['training','learning','course','workshop','certification','development',
+           'leadership','coaching','upskilling','facilitation','education','programme',
+           'program','skill','skills','bootcamp','boot camp','class','instructor',
+           'ilt','e-learning','elearning','genai','gen ai','ai training','l&d',
+           'design thinking','storytelling','communication','influence'],
+    cats:['Learning, Events & Engagement'], subCats:['TRAINING','Executive Education','Learning & Development'], label:'Learning & Development' },
+  { terms:['food','catering','meal','snack','lunch','breakfast','dinner','buffet',
+           'refreshments','pantry','water','beverages','drinks','coffee','tea',
+           'fruits','canteen','cafeteria','kitchen','ration','pantry supplies',
+           'biscuits','snacks','vending'],
+    cats:['Food & Workplace'], subCats:['Food, Catering & Workplace Supplies','Food Catering'], label:'Food Services' },
+  { terms:['gift','swag','branding','merchandise','promotional','promo','welcome kit',
+           'tshirt','t-shirt','bag','tote','pen','mug','bottle','jacket','cap',
+           'hat','umbrella','sticker','lanyard','id card','badge','printed','print',
+           'corporate gift','hamper','gratitude hamper'],
+    cats:['Marketing & Merchandise'], subCats:['CORPORATE MERCHANDISE','Corporate Merchandise','Branded Merchandise'], label:'Branded Merchandise' },
+  { terms:['staffing','hiring','recruitment','contractor','temporary','temp','workforce',
+           'manpower','talent','resource','headcount','contingent','freelance',
+           'consultant','contract staff','msp','rpo','vendor staffing','talent acquisition',
+           'lateral hiring','campus hiring','naps','nats'],
+    cats:['Workforce & HR'], subCats:['Workforce, HR & Professional Services','Contract Staffing'], label:'Contract Staffing' },
+  { terms:['travel','hotel','flight','cab','taxi','booking','accommodation','transport',
+           'transportation','relocation','visa','airport','car','vehicle','shuttle',
+           'bus','ets','employee transport','spot rental','outstation','car rental'],
+    cats:['Travel & Logistics'], subCats:['Travel, Fleet & Logistics'], label:'Travel & Logistics' },
+  { terms:['legal','attorney','lawyer','counsel','litigation','compliance','advocate',
+           'court','contract review','regulatory','law','statutory','tax advisory',
+           'tax consultant','audit','posh','labour law','employment law','sebi','gst advisory'],
+    cats:['Professional & Advisory'], subCats:['PROFESSIONAL SERVICES'], label:'Legal & Advisory' },
+  { terms:['laptop','macbook','mac book','notebook','computer','pc','workstation',
+           'computing','dell laptop','apple laptop','hp laptop','lenovo laptop'],
+    cats:['IT & Digital'], subCats:['IT Hardware, AV & End-User Devices'], label:'Laptops' },
+  { terms:['monitor','screen','external display','external monitor','curved monitor'],
+    cats:['IT & Digital'], subCats:['IT Hardware, AV & End-User Devices'], label:'Monitors' },
+  { terms:['phone','mobile','iphone','android','smartphone','handset','cellular',
+           'cell phone','samsung','pixel','oneplus','mobile device'],
+    cats:['IT & Digital'], subCats:['IT Hardware, AV & End-User Devices'], label:'Mobile Devices' },
+  { terms:['network','wifi','wi-fi','switch','router','networking','mpls','internet',
+           'bandwidth','connectivity','lan','wan','firewall','vpn','cisco','palo alto'],
+    cats:['IT & Digital'], subCats:['Software, Cloud, Data & Telecom'], label:'Network Infrastructure' },
+  { terms:['software','application','app','license','licence','saas','cloud','platform',
+           'tool','subscription','erp','crm','api','data','database','analytics'],
+    cats:['IT & Digital'], subCats:['Software, Cloud, Data & Telecom'], label:'Software & Cloud' },
+  { terms:['developer','coding','code','ide','development','programming','engineering',
+           'java','python','react','node','full stack','backend','frontend','qa','testing'],
+    cats:['IT & Digital','Workforce & HR'], subCats:['Software, Cloud, Data & Telecom','Contract Staffing'], label:'Developer Tools / Staffing' },
+  { terms:['av','audio visual','audio-visual','projector','meeting room','conference room',
+           'video conferencing','vc','webex','teams room','zoom room','speaker system',
+           'microphone','pa system','display screen','digital signage'],
+    cats:['IT & Digital'], subCats:['IT Hardware, AV & End-User Devices'], label:'AV Systems' },
+  { terms:['security','access card','badge','visitor','visitor management','surveillance',
+           'camera','cctv','monitoring','iot','smart','sensor','biometric','access control',
+           'security guard','manned guarding','fire alarm','fire safety'],
+    cats:['Security & Safety'], subCats:['Security, Fire & Safety'], label:'Physical Security & IoT' },
+  { terms:['interior','interiors','fitout','fit out','civil','construction','electrical',
+           'mep','plumbing','hvac','furniture','modular','office setup','workspace',
+           'flooring','carpet','signage','raised floor','false ceiling','partition'],
+    cats:['Facilities & Real Estate'], subCats:['Construction, Interiors & Workplace Equipment','Facilities, Real Estate & Utilities'], label:'Fit-Out & Interiors' },
+  { terms:['hr','human resource','human resources','payroll','benefits','insurance',
+           'health','medical','gmc','gpa','gtl','wellness','employee benefit',
+           'gratuity','compensation','performance','appraisal'],
+    cats:['Workforce & HR'], subCats:['Workforce, HR & Professional Services','HUMAN RESOURCES'], label:'HR Services' },
+  { terms:['facility','facilities','housekeeping','cleaning','pest control','waste',
+           'fm','facility management','maintenance','hk','hygiene','pantry management',
+           'deep cleaning','washroom','sanitation'],
+    cats:['Facilities & Real Estate','Security & Safety'], subCats:['Facilities, Real Estate & Utilities','Security, Fire & Safety'], label:'Facility Management' },
+  { terms:['printer','printing','id print','card printing','document management',
+           'scanner','copier','mfp','multifunction'],
+    cats:['IT & Digital','Marketing & Merchandise'], subCats:['IT Hardware, AV & End-User Devices','Corporate Merchandise'], label:'Printing & ID Cards' },
+  { terms:['ambulance','medical','nurse','doctor','first aid','health check','wellness',
+           'occupational health','eap','employee assistance'],
+    cats:['Security & Safety','Workforce & HR'], subCats:['Security, Fire & Safety'], label:'Health & Medical' },
+  { terms:['relocation','hhg','household goods','shifting','moving','storage'],
+    cats:['Travel & Logistics'], subCats:['Travel, Fleet & Logistics'], label:'Relocation Services' },
+  { terms:['recruitment process','lateral hire','niche hire','executive search',
+           'headhunting','c-suite','leadership hiring'],
+    cats:['Workforce & HR'], subCats:['Workforce, HR & Professional Services'], label:'Executive Recruitment' },
+  { terms:['daycare','creche','child care','crèche','kid care'],
+    cats:['Workforce & HR'], subCats:['Workforce, HR & Professional Services'], label:'Daycare / Crèche' },
+  { terms:['plant','plants','garden','greenery','landscaping','indoor plants','amc plants'],
+    cats:['Facilities & Real Estate','Marketing & Merchandise'], subCats:['Facilities, Real Estate & Utilities','Corporate Merchandise'], label:'Plants & Greenery' },
+];
+
+// ── Levenshtein distance (for fuzzy matching) ──
+function levenshtein(a, b) {
+  const m=a.length, n=b.length;
+  const dp=[];
+  for(let i=0;i<=m;i++){dp[i]=[];for(let j=0;j<=n;j++)dp[i][j]=i===0?j:j===0?i:0;}
+  for(let i=1;i<=m;i++) for(let j=1;j<=n;j++)
+    dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+
+// ── Fuzzy similarity 0-100 (100=exact) ──
+function fuzzySim(a, b) {
+  if(!a||!b) return 0;
+  if(a===b) return 100;
+  if(b.includes(a)||a.includes(b)) return 92;
+  const d=levenshtein(a,b);
+  return Math.round((1-d/Math.max(a.length,b.length))*100);
+}
+
+// ── Expand query into matched intents ──
+function expandQuery(qLower) {
+  const tokens=qLower.trim().split(/\s+/);
+  const matched=[];
+  const seen=new Set();
+  for(const intent of INTENT_MAP) {
+    let bestSim=0, matchedTerm='';
+    for(const tok of tokens) {
+      for(const term of intent.terms) {
+        if(qLower.includes(term)&&term.length>=4){if(100>bestSim){bestSim=100;matchedTerm=term;}}
+        const s=fuzzySim(tok,term);
+        if(s>bestSim){bestSim=s;matchedTerm=term;}
+      }
+    }
+    if(bestSim>=80&&!seen.has(intent.label)){
+      seen.add(intent.label);
+      matched.push({intent,sim:bestSim,matchedTerm});
+    }
+  }
+  matched.sort((a,b)=>b.sim-a.sim);
+  return matched;
+}
+
+// ── Score a vendor against query + expanded intents (returns {score, reason}) ──
+function scoreVendor(v, qLower, expanded) {
+  let score=0; const reasons=[];
+  const name=(v.name||'').toLowerCase();
+  const cat=(v.procurementCategory||'').toLowerCase();
+  const sub=(v.procurementSubCategory||'').toLowerCase();
+  const svcs=(v.serviceTypes||'').toLowerCase();
+  const ids=String(v.ids||'');
+
+  // Intent-based (highest priority)
+  for(const {intent,sim,matchedTerm} of expanded) {
+    const catMatch=intent.cats.some(c=>cat.includes(c.toLowerCase()));
+    const subMatch=intent.subCats.some(s=>sub.includes(s.toLowerCase())||svcs.includes(s.toLowerCase()));
+    if(subMatch&&score<100){score=100;reasons.push('Matched: \u201c'+matchedTerm+'\u201d \u2192 '+intent.label);}
+    else if(catMatch&&score<70){score=Math.max(score,70);reasons.push('Category: '+intent.label);}
+  }
+
+  // Direct text scoring
+  if(sub.includes(qLower)&&score<100){score=100;reasons.push('Sub-Category match');}
+  else if(svcs.includes(qLower)&&score<80){score=Math.max(score,80);reasons.push('Service type match');}
+  else if(cat.includes(qLower)&&score<70){score=Math.max(score,70);reasons.push('Category match');}
+  else if(name.includes(qLower)&&score<50){score=Math.max(score,50);reasons.push('Vendor name match');}
+  else if(ids.includes(qLower)&&score<40){score=Math.max(score,40);reasons.push('Vendor ID match');}
+
+  // Fuzzy token fallback
+  if(score===0) {
+    const tokens=qLower.split(/\s+/).filter(t=>t.length>=3);
+    for(const tok of tokens) {
+      const words=[...new Set([sub,svcs,cat].join(' ').split(/\W+/).filter(w=>w.length>=3))];
+      const best=words.reduce((mx,w)=>Math.max(mx,fuzzySim(tok,w)),0);
+      if(best>=80){score=Math.round(best*0.65);reasons.push('Similar to: \u201c'+tok+'\u201d');break;}
+    }
+  }
+  return {score,reason:reasons[0]||''};
+}
+
+// Scored vendor cache (populated by getFiltered when a query is active)
+let _vendorScores=new Map();
+let _lastExpanded=[];
+
 function getFiltered(){
   let l=[...VENDORS];
   if(st.cat) l=l.filter(v=>(v.procurementCategory||'').trim()===st.cat);
+
   if(st.q){
-    const ql=st.q.toLowerCase();
-    l=l.filter(v=>
-      v.name.toLowerCase().includes(ql)||
-      (v.serviceTypes||'').toLowerCase().includes(ql)||
-      (v.procurementCategory||'').toLowerCase().includes(ql)||
-      (v.procurementSubCategory||'').toLowerCase().includes(ql)||
-      String(v.ids).includes(ql)||
-      (v.currency||'').toLowerCase().includes(ql)||
-      (v.engagementLevel||'').toLowerCase().includes(ql)||
-      (v.tier||'').toLowerCase().includes(ql)||
-      String(v.orderCount).includes(ql)
-    );
+    const qLower=st.q.toLowerCase().trim();
+    const expanded=expandQuery(qLower);
+    _lastExpanded=expanded;
+    _vendorScores.clear();
+
+    // Score every vendor; keep only those with score > 0
+    const scored=l.map(v=>{
+      const {score,reason}=scoreVendor(v,qLower,expanded);
+      if(score>0){_vendorScores.set(v.name,{score,reason});return{v,score};}
+      return null;
+    }).filter(Boolean);
+
+    // Sort by score desc (engagement level as tie-breaker)
+    const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
+    scored.sort((a,b)=>b.score-a.score||(eo[b.v.engagementLevel]||0)-(eo[a.v.engagementLevel]||0));
+    l=scored.map(x=>x.v);
   }
+
   const ea=['sp','rv','ot'].filter(f=>st.flt.has(f));
   if(ea.length){const m={sp:'Strategic Partner',rv:'Repeat Vendor',ot:'One-Time Vendor'};l=l.filter(v=>ea.some(f=>v.engagementLevel===m[f]));}
   const ta=['hi','md','lo'].filter(f=>st.flt.has(f));
   if(ta.length){const m={hi:'HIGH',md:'MEDIUM',lo:'LOW'};l=l.filter(v=>ta.some(f=>v.tier===m[f]));}
   return l;
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  RENDER
@@ -995,8 +1229,11 @@ function renderVendors(){
     const closedActionBtn=isClosed
       ?'<button class="act-btn unmark-closed" onclick="event.stopPropagation();unmarkClosed(\''+sn+'\')" style="flex:1;justify-content:center">&#9654; Reactivate</button>'
       :'<button class="act-btn mark-closed" onclick="event.stopPropagation();if(confirm(\'Mark '+dispNm+' as PERMANENTLY CLOSED?\'))markClosed(\''+sn+'\')" style="flex:1;justify-content:center">&#128683; Mark Closed</button>';
+    const _ms=st.q&&_vendorScores.has(v.name)?_vendorScores.get(v.name):null;
+    const _mr=_ms&&_ms.reason?'<span class="match-reason">&#129302; '+_ms.reason+'</span>\n':'';
     return '<div class="vcard '+ec+(isSelected?' rfp-selected':'')+(isClosed?' closed':'')+'" id="'+vcId+'">\n'
       +closedBanner+'\n'
+      +_mr
       +'<div class="vc-top" style="'+closedDim+'"><div class="vc-av">'+ini+'</div>'
       +'<div class="vc-inf"><div class="vc-nm" style="display:flex;align-items:center;gap:4px">'
       +'<span onclick="openMo(\''+sn+'\')" title="'+dispNm+'" style="cursor:pointer;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nm2+'</span>'
