@@ -1375,14 +1375,17 @@ function scoreVendor(v, parsedQuery) {
     return { score: 0, matchReason: '' };
   }
 
-  let freeScore = 0;
+  // Checkpoint 1 — primary: service details, category, sub-category + concept synonyms
+  // Checkpoint 2 — fallback: vendor name, IDs (only used when checkpoint 1 finds nothing)
+  let primaryScore = 0;   // from cat / sub / svcs / concept expansion
+  let fallbackScore = 0;  // from vendor name / IDs
 
-  // ── Vendor name ──
-  if (doc.name === freeStr)              { freeScore = W.NAME_EXACT;   reason = 'Vendor name exact'; }
-  else if (doc.name.startsWith(freeStr)) { freeScore = W.NAME_PREFIX;  reason = 'Vendor name'; }
-  else if (freeStr.length >= 3 && doc.name.includes(freeStr)) { freeScore = W.NAME_PARTIAL; reason = 'Vendor name'; }
+  // ── Vendor name → fallback only ──
+  if (doc.name === freeStr)               { fallbackScore = W.NAME_EXACT;   reason = 'Vendor name exact'; }
+  else if (doc.name.startsWith(freeStr))  { fallbackScore = W.NAME_PREFIX;  reason = 'Vendor name'; }
+  else if (freeStr.length >= 3 && doc.name.includes(freeStr)) { fallbackScore = W.NAME_PARTIAL; reason = 'Vendor name'; }
 
-  // ── Concept expansion -> Category -> Sub-Category -> Service Details ──
+  // ── Concept expansion → primary (cat / sub / svcs) ──
   const expansions = expandTerms(freeTerms);
   for (const { concept, sim, matchedTerm } of expansions.slice(0, 3)) {
     const nsub  = s => normalizeSearchText(s);
@@ -1391,54 +1394,57 @@ function scoreVendor(v, parsedQuery) {
     const svcM  = concept.svcTerms && concept.svcTerms.some(s => doc.svcs.includes(nsub(s)));
     const lbl   = '\u201c' + matchedTerm + '\u201d \u2192 ' + concept.label;
     // svc+cat/sub = full score; svc alone (incidental mention) = 25% penalty
-    if (svcM) { const conf=catM||subM; const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>freeScore){freeScore=p;reason=lbl;} }
-    if (subM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>freeScore){freeScore=p;reason=lbl;} }
-    if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>freeScore){freeScore=p;reason=lbl;} }
+    if (svcM) { const conf=catM||subM; const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>primaryScore){primaryScore=p;reason=lbl;} }
+    if (subM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>primaryScore){primaryScore=p;reason=lbl;} }
+    if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>primaryScore){primaryScore=p;reason=lbl;} }
   }
 
-  // ── Direct text traversal: Category -> Sub-Category -> Service Details ──
-  // Category (broad)
+  // ── Direct text — Category → Sub-Category → Service Details (primary) ──
   if (freeStr.length >= 3 && doc.cat.includes(freeStr)) {
-    if (W.CAT_EXACT > freeScore) { freeScore = W.CAT_EXACT; reason = reason || 'Category match'; }
+    if (W.CAT_EXACT > primaryScore) { primaryScore = W.CAT_EXACT; reason = reason || 'Category match'; }
   }
-  // Sub-category (refined)
   if (freeStr.length >= 3 && doc.sub.includes(freeStr)) {
-    if (W.SUBCAT_EXACT > freeScore) { freeScore = W.SUBCAT_EXACT; reason = reason || 'Sub-category match'; }
+    if (W.SUBCAT_EXACT > primaryScore) { primaryScore = W.SUBCAT_EXACT; reason = reason || 'Sub-category match'; }
   }
-  // Service details (closest)
   if (freeStr.length >= 3 && doc.svcs.includes(freeStr)) {
-    if (W.SVC_PHRASE > freeScore) { freeScore = W.SVC_PHRASE; reason = reason || 'Service match'; }
+    if (W.SVC_PHRASE > primaryScore) { primaryScore = W.SVC_PHRASE; reason = reason || 'Service match'; }
   }
 
-  // ── Per-token scoring (multi-word): Category -> Sub-Category -> Service ──
-  if (freeTerms.length > 1 || freeScore === 0) {
-    let tokTotal = 0, tokHits = 0, tokReason = '';
+  // ── Per-token scoring — cat/sub/svcs → primary; name → fallback ──
+  if (freeTerms.length > 1 || (primaryScore === 0 && fallbackScore === 0)) {
+    let tokPrimary = 0, tokFallback = 0, tokHitsPrimary = 0, tokHitsFallback = 0, tokReason = '';
     for (const tok of freeTerms) {
       if (tok.length < 2) continue;
-      let best = 0, bR = '';
-      // Traverse breadth-first: cat -> sub -> svcs (higher score at each level)
-      if (doc.cat.includes(tok))  { best = W.CAT_PARTIAL;    bR = 'category'; }
-      if (doc.sub.includes(tok))  { const p = W.SUBCAT_PARTIAL; if (p > best) { best = p; bR = 'sub-category'; } }
-      if (doc.svcs.includes(tok)) { const p = W.SVC_TOKEN;      if (p > best) { best = p; bR = 'service'; } }
-      if (doc.name.includes(tok)) { const p = 75;                if (p > best) { best = p; bR = 'vendor name'; } }
-      // Fuzzy fallback for longer tokens (search sub + svcs)
+      let best = 0, bR = '', isPrimary = false;
+      if (doc.cat.includes(tok))  { best = W.CAT_PARTIAL;    bR = 'category';    isPrimary = true; }
+      if (doc.sub.includes(tok))  { const p=W.SUBCAT_PARTIAL; if(p>best){best=p;bR='sub-category';isPrimary=true;} }
+      if (doc.svcs.includes(tok)) { const p=W.SVC_TOKEN;      if(p>best){best=p;bR='service';isPrimary=true;} }
+      if (doc.name.includes(tok) && !isPrimary) { const p=75; if(p>best){best=p;bR='vendor name';isPrimary=false;} }
+      // Fuzzy on svcs/sub → primary
       if (best === 0 && tok.length >= 5) {
         const words = (doc.svcs + ' ' + doc.sub).split(/\s+/).filter(w => w.length >= 4);
         for (const w of words) {
           const s = tokenSim(tok, w);
-          if (s >= 0.82) { const p = Math.round(s * W.SVC_FUZZY); if (p > best) { best = p; bR = 'service (fuzzy)'; } }
+          if (s >= 0.82) { const p=Math.round(s*W.SVC_FUZZY); if(p>best){best=p;bR='service (fuzzy)';isPrimary=true;} }
         }
       }
-      if (best > 0) { tokTotal += best; tokHits++; if (!tokReason) tokReason = bR; }
+      if (best > 0) {
+        if (isPrimary) { tokPrimary += best; tokHitsPrimary++; if (!tokReason) tokReason = bR; }
+        else           { tokFallback += best; tokHitsFallback++; if (!tokReason) tokReason = bR; }
+      }
     }
     const minHits = Math.ceil(freeTerms.filter(t => t.length >= 2).length / 2);
-    if (tokHits >= minHits) {
-      const avg = Math.round(tokTotal / Math.max(freeTerms.length, 1));
-      if (avg > freeScore) { freeScore = avg; reason = reason || tokReason; }
+    if (tokHitsPrimary >= minHits) {
+      const avg = Math.round(tokPrimary / Math.max(freeTerms.length, 1));
+      if (avg > primaryScore) { primaryScore = avg; reason = reason || tokReason; }
+    } else if (tokHitsFallback >= minHits && primaryScore === 0) {
+      const avg = Math.round(tokFallback / Math.max(freeTerms.length, 1));
+      if (avg > fallbackScore) { fallbackScore = avg; reason = reason || tokReason; }
     }
   }
 
-  return { score: score + freeScore, matchReason: reason };
+  const freeScore = primaryScore > 0 ? primaryScore : fallbackScore;
+  return { score: score + freeScore, primaryScore, matchReason: reason };
 }
 
 // Caches populated by getFiltered, consumed by renderVendors and showSugg
@@ -1456,13 +1462,16 @@ function getFiltered(){
     _vendorScores.clear();
     _lastExpanded=expandTerms(parsed.freeTerms);
     const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
-    const scored=l.map(v=>{
-      const {score,matchReason}=scoreVendor(v,parsed);
-      if(score>0){_vendorScores.set(v.name,{score,reason:matchReason});return{v,score};}
+    const allScored=l.map(v=>{
+      const {score,primaryScore,matchReason}=scoreVendor(v,parsed);
+      if(score>0){_vendorScores.set(v.name,{score,reason:matchReason});return{v,score,primaryScore};}
       return null;
     }).filter(Boolean);
-    scored.sort((a,b)=>b.score-a.score||(eo[b.v.engagementLevel]||0)-(eo[a.v.engagementLevel]||0));
-    l=scored.map(x=>x.v);
+    // Checkpoint 1: prefer service/category/subcategory matches; fallback to name/ID only if nothing found
+    const primaryHits=allScored.filter(x=>x.primaryScore>0);
+    const useSet=primaryHits.length>0?primaryHits:allScored;
+    useSet.sort((a,b)=>b.score-a.score||(eo[b.v.engagementLevel]||0)-(eo[a.v.engagementLevel]||0));
+    l=useSet.map(x=>x.v);
   }
 
   const ea=['sp','rv','ot'].filter(f=>st.flt.has(f));
