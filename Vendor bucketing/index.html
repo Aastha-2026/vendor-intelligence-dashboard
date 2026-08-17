@@ -1406,7 +1406,7 @@ function scoreVendor(v, parsedQuery) {
     return { score: 0, matchReason: '' };
   }
 
-  // Checkpoint 1 — primary: service details, category, sub-category + concept synonyms
+  // Checkpoint 1 — primary: serviceTypes ONLY (direct text + concept synonyms via svcTerms)
   // Checkpoint 2 — fallback: vendor name, IDs (only used when checkpoint 1 finds nothing)
   let primaryScore = 0;   // from cat / sub / svcs / concept expansion
   let fallbackScore = 0;  // from vendor name / IDs
@@ -1426,7 +1426,7 @@ function scoreVendor(v, parsedQuery) {
     const lbl   = '\u201c' + matchedTerm + '\u201d \u2192 ' + concept.label;
     // svc+cat/sub = full score; svc alone (incidental mention) = 25% penalty
     if (svcM) { const conf=catM||subM; const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>primaryScore){primaryScore=p;reason=lbl;} }
-    if (subM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>primaryScore){primaryScore=p;reason=lbl;} }
+    if (subM&&!svcM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>fallbackScore){fallbackScore=p;reason=lbl;} }
     if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>fallbackScore){fallbackScore=p;reason=lbl;} }
   }
 
@@ -1435,7 +1435,7 @@ function scoreVendor(v, parsedQuery) {
     if (W.CAT_EXACT > fallbackScore) { fallbackScore = W.CAT_EXACT; reason = reason || 'Category match'; }
   }
   if (freeStr.length >= 3 && doc.sub.includes(freeStr)) {
-    if (W.SUBCAT_EXACT > primaryScore) { primaryScore = W.SUBCAT_EXACT; reason = reason || 'Sub-category match'; }
+    if (W.SUBCAT_EXACT > fallbackScore) { fallbackScore = W.SUBCAT_EXACT; reason = reason || 'Sub-category match'; }
   }
   if (freeStr.length >= 3 && doc.svcs.includes(freeStr)) {
     if (W.SVC_PHRASE > primaryScore) { primaryScore = W.SVC_PHRASE; reason = reason || 'Service match'; }
@@ -1448,7 +1448,7 @@ function scoreVendor(v, parsedQuery) {
       if (tok.length < 2) continue;
       let best = 0, bR = '', isPrimary = false;
       if (doc.cat.includes(tok))  { best = W.CAT_PARTIAL;    bR = 'category';    isPrimary = false; }
-      if (doc.sub.includes(tok))  { const p=W.SUBCAT_PARTIAL; if(p>best){best=p;bR='sub-category';isPrimary=true;} }
+      if (doc.sub.includes(tok))  { const p=W.SUBCAT_PARTIAL; if(p>best){best=p;bR='sub-category';isPrimary=false;} }
       if (doc.svcs.includes(tok)) { const p=W.SVC_TOKEN;      if(p>best){best=p;bR='service';isPrimary=true;} }
       if (doc.name.includes(tok) && !isPrimary) { const p=75; if(p>best){best=p;bR='vendor name';isPrimary=false;} }
       // Fuzzy on svcs/sub → primary
