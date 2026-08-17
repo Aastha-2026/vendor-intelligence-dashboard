@@ -370,6 +370,9 @@ mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-wei
   <nav class="sidebar">
     <div class="sb-hd">&#128194; Procurement Categories</div>
     <div id="catList"></div>
+    <div class="sb-divider"></div>
+    <div class="sb-hd2">&#127970; Department Buckets</div>
+    <div id="deptList"></div>
   </nav>
 
   <main class="content">
@@ -555,7 +558,7 @@ const MR_SOURCES = {
   ]
 };
 
-let st = {q:'', flt:new Set(), cat:'', cur:[], fsi:-1, rfp:new Set()};
+let st = {q:'', flt:new Set(), cat:'', dept:'', cur:[], fsi:-1, rfp:new Set()};
 
 // Permanently-closed vendors — persisted in localStorage so they survive page refresh
 let closedVendors = new Set(JSON.parse(localStorage.getItem('wmt_closed_vendors') || '[]'));
@@ -726,7 +729,42 @@ function buildCats() {
     };
     el.appendChild(d);
   });
+  buildDeptSidebar();
 }
+
+// ── Build the Department Buckets sidebar section ──
+function buildDeptSidebar() {
+  const dm = {};
+  VENDORS.forEach(v => {
+    const d = (v.department || '').trim();
+    if (d && d !== 'Multiple Departments') dm[d] = (dm[d] || 0) + 1;
+  });
+  const rows = [
+    ['������ All Departments', VENDORS.length, ''],
+    ...Object.entries(dm).sort((a, b) => b[1] - a[1]).map(([d, n]) => [d, n, d])
+  ];
+  const el = document.getElementById('deptList');
+  el.innerHTML = '';
+  rows.forEach(([lbl, cnt, dept], i) => {
+    const d = document.createElement('div');
+    d.className = 'dept-row' + (i === 0 ? ' on' : '');
+    d.dataset.d = dept;
+    d.innerHTML = '<div class="dept-nm">' + lbl + '</div><span class="dept-cnt">' + cnt + '</span>';
+    d.onclick = () => {
+      document.querySelectorAll('.dept-row').forEach(e => e.classList.remove('on'));
+      d.classList.add('on');
+      st.dept = dept; st.q = ''; setQ(''); hideSugg();
+      document.getElementById('sBanner').classList.remove('show');
+      document.getElementById('mrPanel').classList.remove('show');
+      // Clear category selection when dept is chosen
+      document.querySelectorAll('.cat-row').forEach((e, i2) => e.classList.toggle('on', i2 === 0));
+      st.cat = '';
+      renderVendors();
+    };
+    el.appendChild(d);
+  });
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  FILTERS
@@ -739,10 +777,11 @@ function toggleFilter(f) {
 }
 function clearAllFilters() {
   st.flt.clear(); document.querySelectorAll('.fc').forEach(b=>b.classList.remove('on'));
-  st.q=''; st.cat=''; setQ(''); hideSugg();
+  st.q=''; st.cat=''; st.dept=''; setQ(''); hideSugg();
   document.getElementById('sBanner').classList.remove('show');
   document.getElementById('mrPanel').classList.remove('show');
   document.querySelectorAll('.cat-row').forEach((e,i)=>e.classList.toggle('on',i===0));
+  document.querySelectorAll('.dept-row').forEach((e,i)=>e.classList.toggle('on',i===0));
   renderVendors();
 }
 function setQ(v) {
@@ -1216,6 +1255,7 @@ function buildSearchIndex() {
       eng:    normalizeSearchText(v.engagementLevel),
       tier:   (v.tier || '').toLowerCase(),
       msme:   normalizeSearchText(v.msme),
+      dept:   normalizeSearchText(v.department),
       orders: String(v.orderCount || 0),
     });
   });
@@ -1412,6 +1452,8 @@ function scoreVendor(v, parsedQuery) {
       if (doc.sub.includes(tok))  { const p = W.SUBCAT_PARTIAL; if (p > best) { best = p; bR = 'sub-category'; } }
       if (doc.svcs.includes(tok)) { const p = W.SVC_TOKEN;      if (p > best) { best = p; bR = 'service'; } }
       if (doc.name.includes(tok)) { const p = 75;                if (p > best) { best = p; bR = 'vendor name'; } }
+      if (doc.dept&&doc.dept.includes(tok)){const p=55;if(p>best){best=p;bR='department';}}
+      if (doc.dept&&doc.dept.includes(tok)){const p=55;if(p>best){best=p;bR='department';}}
       // Fuzzy fallback for longer tokens (search sub + svcs)
       if (best === 0 && tok.length >= 5) {
         const words = (doc.svcs + ' ' + doc.sub).split(/\s+/).filter(w => w.length >= 4);
@@ -1456,6 +1498,8 @@ function getFiltered(){
     l=scored.map(x=>x.v);
   }
 
+  if(st.dept) l=l.filter(v=>(v.department||'').trim()===st.dept);
+  if(st.dept) l=l.filter(v=>(v.department||'').trim()===st.dept);
   const ea=['sp','rv','ot'].filter(f=>st.flt.has(f));
   if(ea.length){const m={sp:'Strategic Partner',rv:'Repeat Vendor',ot:'One-Time Vendor'};l=l.filter(v=>ea.some(f=>v.engagementLevel===m[f]));}
   const ta=['hi','md','lo'].filter(f=>st.flt.has(f));
@@ -1486,7 +1530,7 @@ function renderVendors(){
   document.getElementById('stOT').textContent=ot;
   document.getElementById('stCats').textContent=cats.size;
   document.getElementById('stMultiCur').textContent=multiCur;
-  document.getElementById('conTitle').textContent=st.cat||'All Vendors';
+  document.getElementById('conTitle').textContent=st.dept?(st.cat?st.cat+' · '+st.dept:st.dept):st.cat||'All Vendors';
   document.getElementById('conMeta').textContent=l.length+' vendor'+(l.length!==1?'s':'')+' \u00B7 '+cats.size+' categor'+(cats.size!==1?'ies':'y');
   const grid=document.getElementById('vgrid'); const empt=document.getElementById('empty');
   if(!l.length){grid.innerHTML='';empt.style.display='block';return;}
