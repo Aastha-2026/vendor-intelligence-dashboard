@@ -740,7 +740,7 @@ function buildDeptSidebar() {
     if (d && d !== 'Multiple Departments') dm[d] = (dm[d] || 0) + 1;
   });
   const rows = [
-    ['í ¼í¿¢ All Departments', VENDORS.length, ''],
+    ['&#127962; All Departments', VENDORS.length, ''],
     ...Object.entries(dm).sort((a, b) => b[1] - a[1]).map(([d, n]) => [d, n, d])
   ];
   const el = document.getElementById('deptList');
@@ -749,7 +749,7 @@ function buildDeptSidebar() {
     const d = document.createElement('div');
     d.className = 'dept-row' + (i === 0 ? ' on' : '');
     d.dataset.d = dept;
-    d.innerHTML = '<div class="dept-nm">' + lbl + '</div><span class="dept-cnt">' + cnt + '</span>';
+    d.innerHTML = '<div class="cat-l"><span class="cat-nm">' + lbl + '</span></div><span class="dept-cnt">' + cnt + '</span>';
     d.onclick = () => {
       document.querySelectorAll('.dept-row').forEach(e => e.classList.remove('on'));
       d.classList.add('on');
