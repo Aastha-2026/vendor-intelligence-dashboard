@@ -753,6 +753,8 @@ function setQ(v) {
 // ═══════════════════════════════════════════════════════════════════════════
 //  SEARCH
 // ═══════════════════════════════════════════════════════════════════════════
+let _suggTimer=null, _gridTimer=null; // debounce timers for search perf
+
 function setupSearch() {
   const inp=document.getElementById('sInp');
   // Clone to remove stale listeners from previous data loads
@@ -760,8 +762,15 @@ function setupSearch() {
   ni.addEventListener('input',()=>{
     const q=ni.value.trim(); st.q=q;
     document.getElementById('sClr').style.display=q?'block':'none';
-    if(q.length>=2) showSugg(q); else{hideSugg();document.getElementById('mrPanel').classList.remove('show');}
-    renderVendors(); updateBanner(q);
+    // Suggestions: fast debounce (120ms) — small list, feels instant
+    clearTimeout(_suggTimer);
+    _suggTimer=setTimeout(()=>{
+      if(q.length>=2) showSugg(q); else{hideSugg();document.getElementById('mrPanel').classList.remove('show');}
+      updateBanner(q);
+    },120);
+    // Grid render: slightly longer debounce (280ms) — scoring 851 vendors is heavier
+    clearTimeout(_gridTimer);
+    _gridTimer=setTimeout(()=>renderVendors(),280);
   });
   ni.addEventListener('keydown',e=>{
     const d=document.getElementById('sugg'); const it=d.querySelectorAll('.sugg-row');
@@ -1202,8 +1211,24 @@ function normalizeSearchText(v) {
 // ── Pre-built per-vendor search documents ────────────────────────────────────
 let _searchDocs = new Map();
 
+// Pre-normalize SEARCH_CONCEPTS once so the scoring hot-loop avoids repeated string ops
+function preNormalizeConcepts() {
+  SEARCH_CONCEPTS.forEach(c => {
+    c._normTerms   = c.terms.map(normalizeSearchText);
+    c._normCats    = (c.cats    || []).map(normalizeSearchText);
+    c._normSubCats = (c.subCats || []).map(normalizeSearchText);
+    c._normSvcTerms= (c.svcTerms|| []).map(normalizeSearchText);
+    // Also pre-split multi-word terms for token matching
+    c._normTermWords = c._normTerms.map(t => t.split(' ').filter(w => w.length >= 3));
+  });
+}
+
+let _expandCache = new Map(); // concept expansion cache keyed by freeTerms string
+
 function buildSearchIndex() {
+  _expandCache.clear(); // clear cache when data reloads
   _searchDocs.clear();
+  preNormalizeConcepts();
   VENDORS.forEach(v => {
     _searchDocs.set(v.name, {
       name:   normalizeSearchText(v.name),
@@ -1269,20 +1294,24 @@ function parseQuery(raw) {
 // ── Synonym/intent expansion ──────────────────────────────────────────────────
 function expandTerms(terms) {
   if (!terms.length) return [];
+  const cacheKey = terms.join(' ');
+  if (_expandCache.has(cacheKey)) return _expandCache.get(cacheKey);
+
   const termStr = terms.join(' ');
   const matched = [], seen = new Set();
   for (const concept of SEARCH_CONCEPTS) {
     let best = 0, matchedTerm = '';
-    for (const alias of concept.terms) {
-      const a = normalizeSearchText(alias);
-      if (termStr.includes(a) && a.length >= 3) { best = 1; matchedTerm = alias; break; }
+    const normTerms = concept._normTerms || concept.terms.map(normalizeSearchText);
+    const normWords = concept._normTermWords || normTerms.map(t => t.split(' ').filter(w => w.length >= 3));
+    for (let ai = 0; ai < normTerms.length; ai++) {
+      const a = normTerms[ai];
+      if (termStr.includes(a) && a.length >= 3) { best = 1; matchedTerm = concept.terms[ai]; break; }
       for (const t of terms) {
         let s = tokenSim(t, a);
-        if (s > best) { best = s; matchedTerm = alias; }
-        for (const w of a.split(' ')) {
-          if (w.length < 3) continue;
+        if (s > best) { best = s; matchedTerm = concept.terms[ai]; }
+        for (const w of normWords[ai]) {
           s = tokenSim(t, w);
-          if (s > best) { best = s; matchedTerm = alias; }
+          if (s > best) { best = s; matchedTerm = concept.terms[ai]; }
         }
       }
     }
@@ -1291,6 +1320,8 @@ function expandTerms(terms) {
     }
   }
   matched.sort((a, b) => b.sim - a.sim);
+  if (_expandCache.size > 200) _expandCache.clear(); // prevent unbounded growth
+  _expandCache.set(cacheKey, matched);
   return matched;
 }
 
@@ -1379,10 +1410,10 @@ function scoreVendor(v, parsedQuery) {
   // ── Concept expansion → primary (cat / sub / svcs) ──
   const expansions = expandTerms(freeTerms);
   for (const { concept, sim, matchedTerm } of expansions.slice(0, 3)) {
-    const nsub  = s => normalizeSearchText(s);
-    const catM  = concept.cats.some(c    => doc.cat.includes(nsub(c)));
-    const subM  = concept.subCats.some(s  => doc.sub.includes(nsub(s)) || doc.svcs.includes(nsub(s)));
-    const svcM  = concept.svcTerms && concept.svcTerms.some(s => doc.svcs.includes(nsub(s)));
+    const catM  = (concept._normCats    || concept.cats.map(normalizeSearchText)).some(c => doc.cat.includes(c));
+    const subM  = (concept._normSubCats  || concept.subCats.map(normalizeSearchText)).some(s => doc.sub.includes(s) || doc.svcs.includes(s));
+    const svcM  = concept._normSvcTerms ? concept._normSvcTerms.some(s => doc.svcs.includes(s))
+                  : (concept.svcTerms||[]).some(s => doc.svcs.includes(normalizeSearchText(s)));
     const lbl   = '\u201c' + matchedTerm + '\u201d \u2192 ' + concept.label;
     // svc+cat/sub = full score; svc alone (incidental mention) = 25% penalty
     if (svcM) { const conf=catM||subM; const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>primaryScore){primaryScore=p;reason=lbl;} }
