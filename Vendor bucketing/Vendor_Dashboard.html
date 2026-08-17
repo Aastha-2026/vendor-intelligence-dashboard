@@ -1399,13 +1399,14 @@ function scoreVendor(v, parsedQuery) {
 
   // Checkpoint 1 — primary: serviceTypes ONLY (direct text + concept synonyms via svcTerms)
   // Checkpoint 2 — fallback: vendor name, IDs (only used when checkpoint 1 finds nothing)
-  let primaryScore = 0;   // from cat / sub / svcs / concept expansion
-  let fallbackScore = 0;  // from vendor name / IDs
+  let primaryScore = 0;  // Checkpoint 1: serviceTypes (service details + synonyms)
+  let catScore     = 0;  // Checkpoint 2: procurementSubCategory / procurementCategory
+  let nameScore    = 0;  // Checkpoint 3: vendor name / Vendor ID
 
-  // ── Vendor name → fallback only ──
-  if (doc.name === freeStr)               { fallbackScore = W.NAME_EXACT;   reason = 'Vendor name exact'; }
-  else if (doc.name.startsWith(freeStr))  { fallbackScore = W.NAME_PREFIX;  reason = 'Vendor name'; }
-  else if (freeStr.length >= 3 && doc.name.includes(freeStr)) { fallbackScore = W.NAME_PARTIAL; reason = 'Vendor name'; }
+  // ── Vendor name → Checkpoint 3 ──
+  if (doc.name === freeStr)               { nameScore = W.NAME_EXACT;   reason = 'Vendor name exact'; }
+  else if (doc.name.startsWith(freeStr))  { nameScore = W.NAME_PREFIX;  reason = 'Vendor name'; }
+  else if (freeStr.length >= 3 && doc.name.includes(freeStr)) { nameScore = W.NAME_PARTIAL; reason = 'Vendor name'; }
 
   // ── Concept expansion → primary (cat / sub / svcs) ──
   const expansions = expandTerms(freeTerms);
@@ -1417,16 +1418,16 @@ function scoreVendor(v, parsedQuery) {
     const lbl   = '\u201c' + matchedTerm + '\u201d \u2192 ' + concept.label;
     // svc+cat/sub = full score; svc alone (incidental mention) = 25% penalty
     if (svcM) { const conf=catM||subM; const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>primaryScore){primaryScore=p;reason=lbl;} }
-    if (subM&&!svcM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>fallbackScore){fallbackScore=p;reason=lbl;} }
-    if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>fallbackScore){fallbackScore=p;reason=lbl;} }
+    if (subM&&!svcM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>catScore){catScore=p;reason=lbl;} }
+    if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>catScore){catScore=p;reason=lbl;} }
   }
 
   // ── Direct text — Category → Sub-Category → Service Details (primary) ──
   if (freeStr.length >= 3 && doc.cat.includes(freeStr)) {
-    if (W.CAT_EXACT > fallbackScore) { fallbackScore = W.CAT_EXACT; reason = reason || 'Category match'; }
+    if (W.CAT_EXACT > catScore) { catScore = W.CAT_EXACT; reason = reason || 'Category match'; }
   }
   if (freeStr.length >= 3 && doc.sub.includes(freeStr)) {
-    if (W.SUBCAT_EXACT > fallbackScore) { fallbackScore = W.SUBCAT_EXACT; reason = reason || 'Sub-category match'; }
+    if (W.SUBCAT_EXACT > catScore) { catScore = W.SUBCAT_EXACT; reason = reason || 'Sub-category match'; }
   }
   if (freeStr.length >= 3 && doc.svcs.includes(freeStr)) {
     if (W.SVC_PHRASE > primaryScore) { primaryScore = W.SVC_PHRASE; reason = reason || 'Service match'; }
@@ -1434,7 +1435,7 @@ function scoreVendor(v, parsedQuery) {
 
   // ── Per-token scoring — cat/sub/svcs → primary; name → fallback ──
   if (freeTerms.length > 1 || (primaryScore === 0 && fallbackScore === 0)) {
-    let tokPrimary = 0, tokFallback = 0, tokHitsPrimary = 0, tokHitsFallback = 0, tokReason = '';
+    let tokPrimary = 0, tokCat = 0, tokName = 0, tokHitsPrimary = 0, tokHitsCat = 0, tokHitsName = 0, tokReason = '';
     for (const tok of freeTerms) {
       if (tok.length < 2) continue;
       let best = 0, bR = '', isPrimary = false;
@@ -1442,6 +1443,7 @@ function scoreVendor(v, parsedQuery) {
       if (doc.sub.includes(tok))  { const p=W.SUBCAT_PARTIAL; if(p>best){best=p;bR='sub-category';isPrimary=false;} }
       if (doc.svcs.includes(tok)) { const p=W.SVC_TOKEN;      if(p>best){best=p;bR='service';isPrimary=true;} }
       if (doc.name.includes(tok) && !isPrimary) { const p=75; if(p>best){best=p;bR='vendor name';isPrimary=false;} }
+      const isName = !isPrimary && bR === 'vendor name';
       // Fuzzy on svcs/sub → primary
       if (best === 0 && tok.length >= 5) {
         const words = (doc.svcs + ' ' + doc.sub).split(/\s+/).filter(w => w.length >= 4);
@@ -1451,22 +1453,28 @@ function scoreVendor(v, parsedQuery) {
         }
       }
       if (best > 0) {
-        if (isPrimary) { tokPrimary += best; tokHitsPrimary++; if (!tokReason) tokReason = bR; }
-        else           { tokFallback += best; tokHitsFallback++; if (!tokReason) tokReason = bR; }
+        if (isPrimary)  { tokPrimary += best; tokHitsPrimary++; if (!tokReason) tokReason = bR; }
+        else if (isName){ tokName    += best; tokHitsName++;    if (!tokReason) tokReason = bR; }
+        else             { tokCat    += best; tokHitsCat++;     if (!tokReason) tokReason = bR; }
       }
     }
     const minHits = Math.ceil(freeTerms.filter(t => t.length >= 2).length / 2);
     if (tokHitsPrimary >= minHits) {
       const avg = Math.round(tokPrimary / Math.max(freeTerms.length, 1));
       if (avg > primaryScore) { primaryScore = avg; reason = reason || tokReason; }
-    } else if (tokHitsFallback >= minHits && primaryScore === 0) {
-      const avg = Math.round(tokFallback / Math.max(freeTerms.length, 1));
-      if (avg > fallbackScore) { fallbackScore = avg; reason = reason || tokReason; }
+    }
+    if (tokHitsCat >= minHits && primaryScore === 0) {
+      const avg = Math.round(tokCat / Math.max(freeTerms.length, 1));
+      if (avg > catScore) { catScore = avg; reason = reason || tokReason; }
+    }
+    if (tokHitsName >= minHits && primaryScore === 0 && catScore === 0) {
+      const avg = Math.round(tokName / Math.max(freeTerms.length, 1));
+      if (avg > nameScore) { nameScore = avg; reason = reason || tokReason; }
     }
   }
 
-  const freeScore = primaryScore > 0 ? primaryScore : fallbackScore;
-  return { score: score + freeScore, primaryScore, matchReason: reason };
+  const freeScore = primaryScore > 0 ? primaryScore : catScore > 0 ? catScore : nameScore;
+  return { score: score + freeScore, primaryScore, catScore, nameScore, matchReason: reason };
 }
 
 // Caches populated by getFiltered, consumed by renderVendors and showSugg
@@ -1485,13 +1493,15 @@ function getFiltered(){
     _lastExpanded=expandTerms(parsed.freeTerms);
     const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
     const allScored=l.map(v=>{
-      const {score,primaryScore,matchReason}=scoreVendor(v,parsed);
-      if(score>0){_vendorScores.set(v.name,{score,reason:matchReason});return{v,score,primaryScore};}
+      const {score,primaryScore,catScore,nameScore,matchReason}=scoreVendor(v,parsed);
+      if(score>0){_vendorScores.set(v.name,{score,reason:matchReason});return{v,score,primaryScore,catScore,nameScore};}
       return null;
     }).filter(Boolean);
-    // Checkpoint 1: prefer service/category/subcategory matches; fallback to name/ID only if nothing found
-    const primaryHits=allScored.filter(x=>x.primaryScore>0);
-    const useSet=primaryHits.length>0?primaryHits:allScored;
+    // Checkpoint 1: serviceTypes match; Checkpoint 2: sub/category; Checkpoint 3: vendor name
+    const ch1=allScored.filter(x=>x.primaryScore>0);
+    const ch2=allScored.filter(x=>x.catScore>0);
+    const ch3=allScored.filter(x=>x.nameScore>0);
+    const useSet=ch1.length>0?ch1:ch2.length>0?ch2:ch3;
     useSet.sort((a,b)=>b.score-a.score||(eo[b.v.engagementLevel]||0)-(eo[a.v.engagementLevel]||0));
     l=useSet.map(x=>x.v);
   }
