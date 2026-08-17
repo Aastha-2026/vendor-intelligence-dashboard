@@ -994,8 +994,8 @@ const SEARCH_CONCEPTS = [
            'canteen','cafeteria','food service','grocery','munch'],
     cats:['Food & Workplace'],
     subCats:['Food, Catering & Workplace Supplies','Food Catering'],
-    svcTerms:['catering','buffet','lunch','breakfast','dinner','snack','refreshment',
-              'food service','pantry supply','gratitude special'] },
+    svcTerms:['catering services','food catering','catering cost','catering charges',
+              'food service','food expenses','buffet service','catering'] },
   { label:'Water and Pantry Supplies',
     terms:['water','water bottle','water jar','drinking water','pantry','pantry supply',
            'pantry snacks','snacks supply','office pantry','20 litre','water dispenser',
@@ -1390,10 +1390,10 @@ function scoreVendor(v, parsedQuery) {
     const subM  = concept.subCats.some(s  => doc.sub.includes(nsub(s)) || doc.svcs.includes(nsub(s)));
     const svcM  = concept.svcTerms && concept.svcTerms.some(s => doc.svcs.includes(nsub(s)));
     const lbl   = '\u201c' + matchedTerm + '\u201d \u2192 ' + concept.label;
-    // Score traversal: svc > sub > cat (svc is closest match)
-    if (svcM) { const p = Math.round(W.CONCEPT_SVC    * sim); if (p > freeScore) { freeScore = p; reason = lbl; } }
-    if (subM) { const p = Math.round(W.CONCEPT_SUBCAT * sim); if (p > freeScore) { freeScore = p; reason = lbl; } }
-    if (catM && !subM && !svcM) { const p = Math.round(W.CONCEPT_CAT * sim); if (p > freeScore) { freeScore = p; reason = lbl; } }
+    // svc+cat/sub = full score; svc alone (incidental mention) = 25% penalty
+    if (svcM) { const conf=catM||subM; const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>freeScore){freeScore=p;reason=lbl;} }
+    if (subM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>freeScore){freeScore=p;reason=lbl;} }
+    if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>freeScore){freeScore=p;reason=lbl;} }
   }
 
   // ── Direct text traversal: Category -> Sub-Category -> Service Details ──
