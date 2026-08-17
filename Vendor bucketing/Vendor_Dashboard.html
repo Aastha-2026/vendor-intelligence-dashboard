@@ -1387,12 +1387,12 @@ function scoreVendor(v, parsedQuery) {
     // svc+cat/sub = full score; svc alone (incidental mention) = 25% penalty
     if (svcM) { const conf=catM||subM; const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>primaryScore){primaryScore=p;reason=lbl;} }
     if (subM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>primaryScore){primaryScore=p;reason=lbl;} }
-    if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>primaryScore){primaryScore=p;reason=lbl;} }
+    if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>fallbackScore){fallbackScore=p;reason=lbl;} }
   }
 
   // ── Direct text — Category → Sub-Category → Service Details (primary) ──
   if (freeStr.length >= 3 && doc.cat.includes(freeStr)) {
-    if (W.CAT_EXACT > primaryScore) { primaryScore = W.CAT_EXACT; reason = reason || 'Category match'; }
+    if (W.CAT_EXACT > fallbackScore) { fallbackScore = W.CAT_EXACT; reason = reason || 'Category match'; }
   }
   if (freeStr.length >= 3 && doc.sub.includes(freeStr)) {
     if (W.SUBCAT_EXACT > primaryScore) { primaryScore = W.SUBCAT_EXACT; reason = reason || 'Sub-category match'; }
@@ -1407,7 +1407,7 @@ function scoreVendor(v, parsedQuery) {
     for (const tok of freeTerms) {
       if (tok.length < 2) continue;
       let best = 0, bR = '', isPrimary = false;
-      if (doc.cat.includes(tok))  { best = W.CAT_PARTIAL;    bR = 'category';    isPrimary = true; }
+      if (doc.cat.includes(tok))  { best = W.CAT_PARTIAL;    bR = 'category';    isPrimary = false; }
       if (doc.sub.includes(tok))  { const p=W.SUBCAT_PARTIAL; if(p>best){best=p;bR='sub-category';isPrimary=true;} }
       if (doc.svcs.includes(tok)) { const p=W.SVC_TOKEN;      if(p>best){best=p;bR='service';isPrimary=true;} }
       if (doc.name.includes(tok) && !isPrimary) { const p=75; if(p>best){best=p;bR='vendor name';isPrimary=false;} }
