@@ -6,7 +6,8 @@
 <title>WMGTS SSP Vendor Intelligence Tool</title>
 <meta property="og:title" content="WMGTS SSP Vendor Intelligence Tool">
 <meta property="og:description" content="Walmart Global Tech India — Empaneled Vendor Registry &amp; Procurement Intelligence Dashboard">
-<meta property="og:url" content="https://aastha-2026.github.io/vendor-intelligence-dashboard/Vendor%20bucketing/">
+<meta property="og:url" content="https://aastha-2026.github.io/vendor-intelligence-dashboard/Vendor%20bucketing/index.html">
+<link rel="canonical" href="https://aastha-2026.github.io/vendor-intelligence-dashboard/Vendor%20bucketing/index.html">
 <meta property="og:type" content="website">
 <style>
 @font-face{font-family:'Bogle';src:url('https://i5.walmartimages.com/dfw/4ff9c6c9-71b3/k2-_6bfc46cc-7a63-4ab4-8c2e-3d6b17fc8df4.v1.woff2') format('woff2');font-weight:400;font-style:normal;font-display:swap}
@@ -564,7 +565,7 @@ const MR_SOURCES = {
   ]
 };
 
-let st = {q:'', flt:new Set(), cat:'', cur:[], fsi:-1, rfp:new Set()};
+let st = {q:'', flt:new Set(), cat:'', cur:[], fsi:-1, rfp:new Set(), concept:''};
 
 // Permanently-closed vendors — persisted in localStorage so they survive page refresh
 let closedVendors = new Set(JSON.parse(localStorage.getItem('wmt_closed_vendors') || '[]'));
@@ -728,7 +729,7 @@ function buildCats() {
     d.innerHTML = '<div class="cat-l"><span class="cat-nm">'+lbl+'</span></div><span class="cat-cnt">'+cnt+'</span>';
     d.onclick = () => {
       document.querySelectorAll('.cat-row').forEach(e=>e.classList.remove('on'));
-      d.classList.add('on'); st.cat=cat; st.q=''; setQ(''); hideSugg();
+      d.classList.add('on'); st.cat=cat; st.q=''; st.concept=''; setQ(''); hideSugg();
       document.getElementById('sBanner').classList.remove('show');
       document.getElementById('mrPanel').classList.remove('show');
       renderVendors();
@@ -748,7 +749,7 @@ function toggleFilter(f) {
 }
 function clearAllFilters() {
   st.flt.clear(); document.querySelectorAll('.fc').forEach(b=>b.classList.remove('on'));
-  st.q=''; st.cat=''; setQ(''); hideSugg();
+  st.q=''; st.cat=''; st.concept=''; setQ(''); hideSugg();
   document.getElementById('sBanner').classList.remove('show');
   document.getElementById('mrPanel').classList.remove('show');
   document.querySelectorAll('.cat-row').forEach((e,i)=>e.classList.toggle('on',i===0));
@@ -769,7 +770,7 @@ function setupSearch() {
   // Clone to remove stale listeners from previous data loads
   const ni=inp.cloneNode(true); inp.parentNode.replaceChild(ni,inp);
   ni.addEventListener('input',()=>{
-    const q=ni.value.trim(); st.q=q;
+    const q=ni.value.trim(); st.q=q; st.concept='';
     document.getElementById('sClr').style.display=q?'block':'none';
     // Suggestions: fast debounce (120ms) — small list, feels instant
     clearTimeout(_suggTimer);
@@ -777,9 +778,9 @@ function setupSearch() {
       if(q.length>=2) showSugg(q); else{hideSugg();document.getElementById('mrPanel').classList.remove('show');}
       updateBanner(q);
     },120);
-    // Grid render: slightly longer debounce (280ms) — scoring 851 vendors is heavier
+    // Grid render: short debounce keeps typing smooth while scoring the full vendor list
     clearTimeout(_gridTimer);
-    _gridTimer=setTimeout(()=>renderVendors(),280);
+    _gridTimer=setTimeout(()=>renderVendors(),160);
   });
   ni.addEventListener('keydown',e=>{
     const d=document.getElementById('sugg'); const it=d.querySelectorAll('.sugg-row');
@@ -809,7 +810,7 @@ function showMRPanel(q) {
   document.getElementById('mrQuery').textContent=q;
   document.getElementById('mrPanel').classList.add('show');
 }
-function clearSearch(){st.q='';setQ('');hideSugg();document.getElementById('sBanner').classList.remove('show');document.getElementById('mrPanel').classList.remove('show');renderVendors();}
+function clearSearch(){st.q='';st.concept='';setQ('');hideSugg();document.getElementById('sBanner').classList.remove('show');document.getElementById('mrPanel').classList.remove('show');renderVendors();}
 
 function showSugg(q) {
   const d=document.getElementById('sugg');
@@ -828,8 +829,8 @@ function showSugg(q) {
       const cnt=VENDORS.filter(v=>{
         const doc=_searchDocs.get(v.name);
         if(!doc)return false;
-        return concept.cats.some(c=>doc.cat.includes(normalizeSearchText(c)))||
-               concept.subCats.some(s=>doc.sub.includes(normalizeSearchText(s))||doc.svcs.includes(normalizeSearchText(s)));
+        return concept._normCats.some(c=>hasWholePhrase(doc.cat,c))||
+               concept._normSubCats.some(s=>hasWholePhrase(doc.sub,s)||hasWholePhrase(doc.svcs,s));
       }).length;
       const simLabel=sim===1?'Exact':'~'+Math.round(sim*100)+'%';
       h+='<div class="sugg-row sugg-intent" onclick="semanticSearch(\''+concept.label.replace(/'/g,"\\'")+'\')">'+
@@ -844,10 +845,12 @@ function showSugg(q) {
   }
 
   // ── Top scored vendors ──
-  const topV=VENDORS.map(v=>{
-    const{score,matchReason}=scoreVendor(v,parsed);
-    return score>0?{v,score,matchReason}:null;
-  }).filter(Boolean)
+  const scored=VENDORS.map(v=>{
+    const{score,coverage,matchReason}=scoreVendor(v,parsed);
+    return score>0?{v,score,coverage:coverage==null?1:coverage,matchReason}:null;
+  }).filter(Boolean);
+  const fullCov=scored.filter(x=>x.coverage>=0.999);
+  const topV=(fullCov.length?fullCov:scored)
     .sort((a,b)=>b.score-a.score)
     .slice(0,6);
 
@@ -895,14 +898,20 @@ function showSugg(q) {
 function hlSugg(items){items.forEach((e,i)=>e.classList.toggle('foc',i===st.fsi));if(st.fsi>=0)items[st.fsi].scrollIntoView({block:'nearest'});}
 function hideSugg(){document.getElementById('sugg').style.display='none';}
 function selCat(c){
-  st.cat=c; st.q=''; setQ(''); hideSugg();
+  st.cat=c; st.q=''; st.concept=''; setQ(''); hideSugg();
   document.getElementById('sBanner').classList.remove('show');
   document.getElementById('mrPanel').classList.remove('show');
   const el=[...document.querySelectorAll('.cat-row')].find(e=>e.dataset.c===c);
   if(el){document.querySelectorAll('.cat-row').forEach(e=>e.classList.remove('on'));el.classList.add('on');}
   renderVendors();
 }
-function selVend(n){st.q=n;setQ(n);hideSugg();renderVendors();updateBanner(n);}
+function selVend(n){st.concept='';st.q=n;setQ(n);hideSugg();renderVendors();updateBanner(n);}
+
+// Intent chip click — lock results to one procurement concept (Category → Sub → Service)
+function semanticSearch(label){
+  st.concept=SEARCH_CONCEPTS.some(c=>c.label===label)?label:'';
+  st.q=label; setQ(label); hideSugg(); renderVendors(); updateBanner(label);
+}
 function hlT(t,q){if(!q)return t;return t.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');}
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -992,8 +1001,8 @@ const SEARCH_CONCEPTS = [
            'employee engagement','corporate function','all hands','allhands','converge',
            'annual meet','team day','outing','award','awards','recognition','gala',
            'carnival','fest','festival','iday'],
-    cats:['Learning, Events & Engagement'],
-    subCats:['EVENT','Corporate Events','Events & Engagement'],
+    cats:['Learning & Event Engagement'],
+    subCats:['Event Management'],
     svcTerms:['inauguration','ceremony','event management','annual day','celebration',
               'gathering','converge','launch','award','event setup','event fee'] },
   { label:'Food Services',
@@ -1002,7 +1011,7 @@ const SEARCH_CONCEPTS = [
            'corporate catering','hi tea','hitea','high tea','packed lunch','tiffin',
            'canteen','cafeteria','food service','grocery','munch'],
     cats:['Food & Workplace'],
-    subCats:['Food, Catering & Workplace Supplies','Food Catering'],
+    subCats:['Food, Catering & Workplace Supplies'],
     svcTerms:['catering services','food catering','catering cost','catering charges',
               'food service','food expenses','buffet service','catering'] },
   { label:'Water and Pantry Supplies',
@@ -1020,7 +1029,7 @@ const SEARCH_CONCEPTS = [
            'umbrella','sticker','lanyard','gratitude hamper','hamper','goodies',
            'branded item'],
     cats:['Marketing & Merchandise'],
-    subCats:['CORPORATE MERCHANDISE','Corporate Merchandise','Branded Merchandise'],
+    subCats:['Corporate Merchandise'],
     svcTerms:['gift','merchandise','lanyard','tshirt','mug','hamper','welcome kit',
               'gratitude hamper','badge','id card print','appreciation'] },
   { label:'Learning and Development',
@@ -1031,8 +1040,8 @@ const SEARCH_CONCEPTS = [
            'bootcamp','boot camp','instructor led','ilt','elearning','e learning',
            'genai training','gen ai','agentic ai','ai training','data training',
            'leadership training','manager training','posh training'],
-    cats:['Learning, Events & Engagement'],
-    subCats:['TRAINING','Executive Education','Learning & Development'],
+    cats:['Learning & Event Engagement'],
+    subCats:['Training and Development'],
     svcTerms:['training','workshop','coaching','facilitation','certification',
               'leadership','upskilling','course','programme','bootcamp',
               'design thinking','storytelling','communication','influence without',
@@ -1043,8 +1052,8 @@ const SEARCH_CONCEPTS = [
            'talent sourcing','temp staff','contingent','freelance','contract resource',
            'msp','rpo','vendor staffing','talent acquisition','lateral hire',
            'campus hire','naps','nats','workforce'],
-    cats:['Workforce & HR'],
-    subCats:['Workforce, HR & Professional Services','Contract Staffing','HUMAN RESOURCES'],
+    cats:['Workforce Management'],
+    subCats:['Workforce, HR & Professional Services'],
     svcTerms:['talent acquisition','recruitment','staffing','contingent','msp','rpo',
               'manpower','resource management','hiring','contract staffing'] },
   { label:'Travel',
@@ -1076,7 +1085,7 @@ const SEARCH_CONCEPTS = [
            'advocate','labour law','employment law','posh','statutory','tax advisory',
            'transfer pricing','gst advisory'],
     cats:['Professional & Advisory'],
-    subCats:['PROFESSIONAL SERVICES'],
+    subCats:['Workforce, HR & Professional Services'],
     svcTerms:['legal','litigation','advisory','counsel','compliance','due diligence',
               'posh','transfer pricing','tax advisory','legal assistance'] },
   { label:'Laptops',
@@ -1133,8 +1142,8 @@ const SEARCH_CONCEPTS = [
            'java developer','python developer','react','node','full stack','backend',
            'frontend','qa engineer','test automation','scrum master','devops',
            'tech resource','tech staffing'],
-    cats:['IT & Digital','Workforce & HR'],
-    subCats:['Software, Cloud, Data & Telecom','Contract Staffing'],
+    cats:['IT & Digital','Workforce Management'],
+    subCats:['Software, Cloud, Data & Telecom','Workforce, HR & Professional Services'],
     svcTerms:['developer','java','python','react','node','backend','frontend',
               'full stack','qa','devops','scrum master','tech resource'] },
   { label:'Physical Security and IoT',
@@ -1174,8 +1183,8 @@ const SEARCH_CONCEPTS = [
            'medical insurance','gmc','gpa','gtl','wellness','employee benefit',
            'gratuity','compensation','performance management','appraisal',
            'group medical','group insurance','employee insurance'],
-    cats:['Workforce & HR'],
-    subCats:['Workforce, HR & Professional Services','HUMAN RESOURCES'],
+    cats:['Workforce Management'],
+    subCats:['Workforce, HR & Professional Services'],
     svcTerms:['payroll','gmc','gpa','gtl','insurance premium','gratuity',
               'benefits','wellness','hr services','policy'] },
   { label:'Printing and ID Cards',
@@ -1190,13 +1199,13 @@ const SEARCH_CONCEPTS = [
     terms:['ambulance','medical','nurse','doctor','first aid','health check',
            'wellness event','occupational health','eap','employee assistance',
            'paramedic','blood test','medical camp','health screening'],
-    cats:['Security & Safety','Workforce & HR'],
+    cats:['Security & Safety','Workforce Management'],
     subCats:['Security, Fire & Safety'],
     svcTerms:['ambulance','paramedic','nurse','first aid','medical',
               'health screening','eap','medical waste','bls ambulance'] },
   { label:'Daycare and Creche',
     terms:['daycare','creche','child care','crèche','kid care','daycare services'],
-    cats:['Workforce & HR'],
+    cats:['Workforce Management'],
     subCats:['Workforce, HR & Professional Services'],
     svcTerms:['daycare','creche','childcare','day care'] },
   { label:'Plants and Greenery',
@@ -1219,6 +1228,7 @@ function normalizeSearchText(v) {
 
 // ── Pre-built per-vendor search documents ────────────────────────────────────
 let _searchDocs = new Map();
+let _vocab = new Set(); // every word present in category / sub-category / service data
 
 // Pre-normalize SEARCH_CONCEPTS once so the scoring hot-loop avoids repeated string ops
 function preNormalizeConcepts() {
@@ -1227,8 +1237,9 @@ function preNormalizeConcepts() {
     c._normCats    = (c.cats    || []).map(normalizeSearchText);
     c._normSubCats = (c.subCats || []).map(normalizeSearchText);
     c._normSvcTerms= (c.svcTerms|| []).map(normalizeSearchText);
-    // Also pre-split multi-word terms for token matching
-    c._normTermWords = c._normTerms.map(t => t.split(' ').filter(w => w.length >= 3));
+    // Also pre-split multi-word terms for token matching; filler words are dropped so
+    // "event management" cannot match Travel via "travel management".
+    c._normTermWords = c._normTerms.map(t => t.split(' ').filter(w => w.length >= 3 && !GENERIC_TERMS.has(w)));
   });
 }
 
@@ -1237,15 +1248,27 @@ let _expandCache = new Map(); // concept expansion cache keyed by freeTerms stri
 function buildSearchIndex() {
   _expandCache.clear(); // clear cache when data reloads
   _searchDocs.clear();
+  _vocab.clear();
   preNormalizeConcepts();
   VENDORS.forEach(v => {
+    const cat = normalizeSearchText(v.procurementCategory);
+    const sub = normalizeSearchText(v.procurementSubCategory);
+    const svcs= normalizeSearchText(v.serviceTypes);
+    const words = [...new Set((svcs + ' ' + sub + ' ' + cat).split(' ').filter(w => w.length >= 4))];
+    words.forEach(w => _vocab.add(w));
+    const name = normalizeSearchText(v.name);
     _searchDocs.set(v.name, {
-      name:   normalizeSearchText(v.name),
+      name,
       idsRaw: String(v.ids || ''),
       ids:    normalizeSearchText(v.ids),
-      cat:    normalizeSearchText(v.procurementCategory),
-      sub:    normalizeSearchText(v.procurementSubCategory),
-      svcs:   normalizeSearchText(v.serviceTypes),
+      cat, sub, svcs,
+      // Word sets drive exact, boundary-safe matching (no "cab" inside "cabinet")
+      catW:  new Set(cat.split(' ')),
+      subW:  new Set(sub.split(' ')),
+      svcW:  new Set(svcs.split(' ')),
+      nameW: new Set(name.split(' ')),
+      // Unique words used by the fuzzy/typo pass — precomputed so scoring stays fast
+      words,
       cur:    normalizeSearchText(v.currency),
       eng:    normalizeSearchText(v.engagementLevel),
       tier:   (v.tier || '').toLowerCase(),
@@ -1275,13 +1298,26 @@ function editDist(a, b, cap) {
 function tokenSim(a, b) {
   if (!a || !b) return 0;
   if (a === b) return 1;
-  if (b.includes(a) || a.includes(b)) return 0.9;
+  if (b.includes(a) || a.includes(b)) {
+    const s = a.length <= b.length ? a : b, l = a.length <= b.length ? b : a;
+    // Word-boundary containment (event/events) is a real match; "legal" inside
+    // "trilegal" is not — otherwise vendor names hijack category concepts.
+    return (l.startsWith(s) || l.includes(' ' + s)) ? 0.9 : 0.6 * (s.length / l.length);
+  }
   const mx = Math.max(a.length, b.length);
   if (mx <= 3) return 0;
   const cap = mx <= 5 ? 1 : mx <= 8 ? 2 : 3;
   const d = editDist(a, b, cap);
   return d <= cap ? (1 - d / mx) : 0;
 }
+
+// Filler words a procurement user types around the real intent ("housekeeping services").
+// They still score, but weakly, and never decide whether a vendor matches.
+const GENERIC_TERMS = new Set(['service','services','servicing','supply','supplies','supplier',
+  'vendor','vendors','provider','providers','partner','partners','company','companies',
+  'agency','agencies','firm','solution','solutions','management','support','india','indian',
+  'corporate','office','best','top','new','need','needed','require','required','requirement',
+  'for','and','the','of','in','on','with','a','an','to']);
 
 // ── Parse scoped query (vendor:X, id:Y, category:"...", etc.) ─────────────────
 function parseQuery(raw) {
@@ -1300,6 +1336,26 @@ function parseQuery(raw) {
   return { scopes, freeTerms, freeStr: freeTerms.join(' ') };
 }
 
+// Whole-word phrase containment ("event" matches "event management", not "prevention")
+function hasWholePhrase(hay, needle) {
+  const i = hay.indexOf(needle);
+  if (i < 0) return false;
+  const before = i === 0 || hay[i-1] === ' ';
+  const j = i + needle.length;
+  return before && (j === hay.length || hay[j] === ' ');
+}
+
+// Whole-word match tolerant of simple plurals / -ing forms (cab ≠ cabinet, but event = events)
+function wordHit(set, tok) {
+  if (set.has(tok)) return true;
+  if (set.has(tok + 's') || set.has(tok + 'es')) return true;
+  if (tok.endsWith('ies') && set.has(tok.slice(0, -3) + 'y')) return true;
+  if (tok.endsWith('es')  && set.has(tok.slice(0, -2))) return true;
+  if (tok.endsWith('s')   && set.has(tok.slice(0, -1))) return true;
+  if (tok.endsWith('ing') && (set.has(tok.slice(0, -3)) || set.has(tok.slice(0, -3) + 'e'))) return true;
+  return false;
+}
+
 // ── Synonym/intent expansion ──────────────────────────────────────────────────
 function expandTerms(terms) {
   if (!terms.length) return [];
@@ -1307,6 +1363,8 @@ function expandTerms(terms) {
   if (_expandCache.has(cacheKey)) return _expandCache.get(cacheKey);
 
   const termStr = terms.join(' ');
+  const coreTerms = terms.filter(t => !GENERIC_TERMS.has(t));
+  const simTerms = coreTerms.length ? coreTerms : terms;
   const matched = [], seen = new Set();
   for (const concept of SEARCH_CONCEPTS) {
     let best = 0, matchedTerm = '';
@@ -1314,8 +1372,8 @@ function expandTerms(terms) {
     const normWords = concept._normTermWords || normTerms.map(t => t.split(' ').filter(w => w.length >= 3));
     for (let ai = 0; ai < normTerms.length; ai++) {
       const a = normTerms[ai];
-      if (termStr.includes(a) && a.length >= 3) { best = 1; matchedTerm = concept.terms[ai]; break; }
-      for (const t of terms) {
+      if (a.length >= 3 && hasWholePhrase(termStr, a)) { best = 1; matchedTerm = concept.terms[ai]; break; }
+      for (const t of simTerms) {
         let s = tokenSim(t, a);
         if (s > best) { best = s; matchedTerm = concept.terms[ai]; }
         for (const w of normWords[ai]) {
@@ -1415,75 +1473,111 @@ function scoreVendor(v, parsedQuery) {
   // ── Vendor name → Checkpoint 3 ──
   if (doc.name === freeStr)               { nameScore = W.NAME_EXACT;   reason = 'Vendor name exact'; }
   else if (doc.name.startsWith(freeStr))  { nameScore = W.NAME_PREFIX;  reason = 'Vendor name'; }
-  else if (freeStr.length >= 3 && doc.name.includes(freeStr)) { nameScore = W.NAME_PARTIAL; reason = 'Vendor name'; }
+  else if (freeStr.length >= 3 && hasWholePhrase(doc.name, freeStr)) { nameScore = W.NAME_PARTIAL; reason = 'Vendor name'; }
+
+  // Query words explained by a concept the vendor actually satisfies — counted as covered
+  const conceptCovered = new Set();
 
   // ── Concept expansion → primary (cat / sub / svcs) ──
   const expansions = expandTerms(freeTerms);
   for (const { concept, sim, matchedTerm } of expansions.slice(0, 3)) {
-    const catM  = (concept._normCats    || concept.cats.map(normalizeSearchText)).some(c => doc.cat.includes(c));
-    const subM  = (concept._normSubCats  || concept.subCats.map(normalizeSearchText)).some(s => doc.sub.includes(s) || doc.svcs.includes(s));
-    const svcM  = concept._normSvcTerms ? concept._normSvcTerms.some(s => doc.svcs.includes(s))
-                  : (concept.svcTerms||[]).some(s => doc.svcs.includes(normalizeSearchText(s)));
+    const catM  = (concept._normCats    || []).some(c => hasWholePhrase(doc.cat, c));
+    const subM  = (concept._normSubCats || []).some(s => hasWholePhrase(doc.sub, s) || hasWholePhrase(doc.svcs, s));
+    const svcM  = (concept._normSvcTerms|| []).some(s => hasWholePhrase(doc.svcs, s));
     const lbl   = '\u201c' + matchedTerm + '\u201d \u2192 ' + concept.label;
+    if (catM || subM || svcM) conceptTokensOf(concept, freeTerms).forEach(t => conceptCovered.add(t));
     // svc+cat/sub = full score; svc alone (incidental mention) = 25% penalty
-    if (svcM) { const conf=catM||subM; const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>primaryScore){primaryScore=p;reason=lbl;} }
+    if (svcM) {
+      const conf=catM||subM;
+      const p=Math.round(W.CONCEPT_SVC*sim*(conf?1.0:0.25)); if(p>primaryScore){primaryScore=p;reason=lbl;}
+      // Vendor is bucketed in the right sub-category too — the strongest signal of fit
+      if(conf){ const q=Math.round((subM?W.CONCEPT_SUBCAT:W.CONCEPT_CAT)*sim); if(q>catScore)catScore=q; }
+    }
     if (subM&&!svcM) { const p=Math.round(W.CONCEPT_SUBCAT*sim); if(p>catScore){catScore=p;reason=lbl;} }
     if (catM&&!subM&&!svcM) { const p=Math.round(W.CONCEPT_CAT*sim); if(p>catScore){catScore=p;reason=lbl;} }
   }
 
   // ── Direct text — Category → Sub-Category → Service Details (primary) ──
-  if (freeStr.length >= 3 && doc.cat.includes(freeStr)) {
+  if (freeStr.length >= 3 && hasWholePhrase(doc.cat, freeStr)) {
     if (W.CAT_EXACT > catScore) { catScore = W.CAT_EXACT; reason = reason || 'Category match'; }
   }
-  if (freeStr.length >= 3 && doc.sub.includes(freeStr)) {
+  if (freeStr.length >= 3 && hasWholePhrase(doc.sub, freeStr)) {
     if (W.SUBCAT_EXACT > catScore) { catScore = W.SUBCAT_EXACT; reason = reason || 'Sub-category match'; }
   }
-  if (freeStr.length >= 3 && doc.svcs.includes(freeStr)) {
+  if (freeStr.length >= 3 && hasWholePhrase(doc.svcs, freeStr)) {
     if (W.SVC_PHRASE > primaryScore) { primaryScore = W.SVC_PHRASE; reason = reason || 'Service match'; }
   }
 
-  // ── Per-token scoring — cat/sub/svcs → primary; name → fallback ──
-  if (freeTerms.length > 1 || (primaryScore === 0 && fallbackScore === 0)) {
-    let tokPrimary = 0, tokCat = 0, tokName = 0, tokHitsPrimary = 0, tokHitsCat = 0, tokHitsName = 0, tokReason = '';
-    for (const tok of freeTerms) {
-      if (tok.length < 2) continue;
-      let best = 0, bR = '', isPrimary = false;
-      if (doc.cat.includes(tok))  { best = W.CAT_PARTIAL;    bR = 'category';    isPrimary = false; }
-      if (doc.sub.includes(tok))  { const p=W.SUBCAT_PARTIAL; if(p>best){best=p;bR='sub-category';isPrimary=false;} }
-      if (doc.svcs.includes(tok)) { const p=W.SVC_TOKEN;      if(p>best){best=p;bR='service';isPrimary=true;} }
-      if (doc.name.includes(tok) && !isPrimary) { const p=75; if(p>best){best=p;bR='vendor name';isPrimary=false;} }
-      const isName = !isPrimary && bR === 'vendor name';
-      // Fuzzy on svcs/sub → primary
-      if (best === 0 && tok.length >= 5) {
-        const words = (doc.svcs + ' ' + doc.sub).split(/\s+/).filter(w => w.length >= 4);
-        for (const w of words) {
-          const s = tokenSim(tok, w);
-          if (s >= 0.82) { const p=Math.round(s*W.SVC_FUZZY); if(p>best){best=p;bR='service (fuzzy)';isPrimary=true;} }
-        }
-      }
-      if (best > 0) {
-        if (isPrimary)  { tokPrimary += best; tokHitsPrimary++; if (!tokReason) tokReason = bR; }
-        else if (isName){ tokName    += best; tokHitsName++;    if (!tokReason) tokReason = bR; }
-        else             { tokCat    += best; tokHitsCat++;     if (!tokReason) tokReason = bR; }
+  // ── Per-token scoring — every meaningful query word must be accounted for (AND semantics) ──
+  const qTokens = freeTerms.filter(t => t.length >= 2);
+  const coreIdx = qTokens.map((t,i)=>GENERIC_TERMS.has(t)?-1:i).filter(i=>i>=0);
+  const useIdx  = coreIdx.length ? coreIdx : qTokens.map((_,i)=>i);
+  const covered = qTokens.map(t => conceptCovered.has(t));
+  let tokPrimary = 0, tokCat = 0, tokName = 0, tokReason = '';
+  qTokens.forEach((tok, i) => {
+    let best = 0, bR = '', bucket = '';
+    if (wordHit(doc.catW,  tok)) { best = W.CAT_PARTIAL;      bR='category';     bucket='cat'; }
+    if (wordHit(doc.subW,  tok)) { const p=W.SUBCAT_PARTIAL; if(p>best){best=p;bR='sub-category';bucket='cat';} }
+    if (wordHit(doc.svcW,  tok)) { const p=W.SVC_TOKEN;      if(p>best){best=p;bR='service';     bucket='svc';} }
+    if (wordHit(doc.nameW, tok)) { const p=75;               if(p>best){best=p;bR='vendor name'; bucket='name';} }
+    // Fuzzy fallback — only for words absent from the whole dataset, i.e. likely typos
+    if (best === 0 && tok.length >= 5 && !_vocab.has(tok)) {
+      for (const w of doc.words) {
+        if (w[0] !== tok[0]) continue;
+        const s = tokenSim(tok, w);
+        if (s >= 0.82) { const p=Math.round(s*W.SVC_FUZZY); if(p>best){best=p;bR='service (fuzzy)';bucket='svc';} }
       }
     }
-    const minHits = Math.ceil(freeTerms.filter(t => t.length >= 2).length / 2);
-    if (tokHitsPrimary >= minHits) {
-      const avg = Math.round(tokPrimary / Math.max(freeTerms.length, 1));
-      if (avg > primaryScore) { primaryScore = avg; reason = reason || tokReason; }
+    if (best > 0) {
+      covered[i] = true;
+      if (GENERIC_TERMS.has(tok) && coreIdx.length) best = Math.round(best * 0.3);
+      if (bucket==='svc')       tokPrimary += best;
+      else if (bucket==='cat')  tokCat     += best;
+      else                      tokName    += best;
+      if (!tokReason) tokReason = bR;
     }
-    if (tokHitsCat >= minHits && primaryScore === 0) {
-      const avg = Math.round(tokCat / Math.max(freeTerms.length, 1));
-      if (avg > catScore) { catScore = avg; reason = reason || tokReason; }
-    }
-    if (tokHitsName >= minHits && primaryScore === 0 && catScore === 0) {
-      const avg = Math.round(tokName / Math.max(freeTerms.length, 1));
-      if (avg > nameScore) { nameScore = avg; reason = reason || tokReason; }
-    }
+  });
+
+  const hits = useIdx.filter(i => covered[i]).length;
+  const coverage = useIdx.length ? hits / useIdx.length : 1;
+  if (!coverage) return { score: 0, matchReason: '' };
+
+  // Multi-word queries are read together: reward vendors covering every word
+  const combo = useIdx.length > 1 ? 1 + 0.6 * (coverage === 1 ? 1 : coverage - 0.5) : 1;
+  const avgOf = t => Math.round((t / useIdx.length) * combo);
+  if (tokPrimary > 0) { const a = avgOf(tokPrimary); if (a > primaryScore) { primaryScore = a; reason = reason || tokReason; } }
+  if (tokCat     > 0) { const a = avgOf(tokCat);     if (a > catScore)     { catScore     = a; reason = reason || tokReason; } }
+  if (tokName    > 0) { const a = avgOf(tokName);    if (a > nameScore)    { nameScore    = a; reason = reason || tokReason; } }
+
+  // Adjacent-phrase bonus: the full query appears verbatim in the vendor's data
+  if (qTokens.length > 1 && freeStr.length >= 5) {
+    if (hasWholePhrase(doc.svcs, freeStr) || hasWholePhrase(doc.sub, freeStr)) primaryScore += 40;
+    else if (hasWholePhrase(doc.cat, freeStr) || hasWholePhrase(doc.name, freeStr)) catScore += 25;
   }
 
-  const freeScore = primaryScore > 0 ? primaryScore : catScore > 0 ? catScore : nameScore;
-  return { score: score + freeScore, primaryScore, catScore, nameScore, matchReason: reason };
+  // Service-detail relevance leads, but category/sub-category alignment lifts the truly
+  // right vendors above ones that merely mention the words somewhere in their line items.
+  let base = primaryScore + 0.6 * catScore;
+  if (base === 0) base = nameScore;
+  else if (nameScore >= W.NAME_PARTIAL) base += nameScore; // user typed the vendor's own name
+  // The vendor's own service list literally contains the searched word — strongest proof of fit
+  if (tokPrimary > 0) base += 60;
+  const freeScore = Math.round(base * (0.5 + 0.5 * coverage));
+  return { score: score + freeScore, primaryScore, catScore, nameScore, coverage, matchReason: reason };
+}
+
+// Query words a concept explains — used so synonym hits satisfy multi-word coverage
+function conceptTokensOf(concept, terms) {
+  const out = [];
+  const normTerms = concept._normTerms || [];
+  const normWords = concept._normTermWords || [];
+  for (const t of terms) {
+    for (let i = 0; i < normTerms.length; i++) {
+      if (normTerms[i].includes(t) || tokenSim(t, normTerms[i]) >= 0.82
+          || normWords[i].some(w => tokenSim(t, w) >= 0.82)) { out.push(t); break; }
+    }
+  }
+  return out;
 }
 
 // Caches populated by getFiltered, consumed by renderVendors and showSugg
@@ -1495,23 +1589,47 @@ function getFiltered(){
   let l=[...VENDORS];
   if(st.cat) l=l.filter(v=>(v.procurementCategory||'').trim()===st.cat);
 
-  if(st.q){
+  const lockedConcept=st.concept?SEARCH_CONCEPTS.find(c=>c.label===st.concept):null;
+  if(lockedConcept){
+    const nc=lockedConcept._normCats||[], ns=lockedConcept._normSubCats||[], nv=lockedConcept._normSvcTerms||[];
+    const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
+    _vendorScores.clear();
+    const hitsList=[];
+    for(const v of l){
+      const d=_searchDocs.get(v.name); if(!d) continue;
+      const svcM=nv.some(s=>hasWholePhrase(d.svcs,s));
+      const subM=ns.some(s=>hasWholePhrase(d.sub,s)||hasWholePhrase(d.svcs,s));
+      const catM=nc.some(c=>hasWholePhrase(d.cat,c));
+      if(!svcM&&!subM&&!catM) continue;
+      const sc=svcM?W.CONCEPT_SVC+(subM||catM?20:0):subM?W.CONCEPT_SUBCAT:W.CONCEPT_CAT;
+      _vendorScores.set(v.name,{score:sc,reason:st.concept});
+      hitsList.push({v,sc});
+    }
+    hitsList.sort((a,b)=>b.sc-a.sc||(eo[b.v.engagementLevel]||0)-(eo[a.v.engagementLevel]||0)||b.v.orderCount-a.v.orderCount);
+    l=hitsList.map(x=>x.v);
+  } else if(st.q){
     const parsed=parseQuery(st.q);
     _lastParsed=parsed;
     _vendorScores.clear();
     _lastExpanded=expandTerms(parsed.freeTerms);
     const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
     const allScored=l.map(v=>{
-      const {score,primaryScore,catScore,nameScore,matchReason}=scoreVendor(v,parsed);
-      if(score>0){_vendorScores.set(v.name,{score,reason:matchReason});return{v,score,primaryScore,catScore,nameScore};}
+      const {score,primaryScore,catScore,nameScore,coverage,matchReason}=scoreVendor(v,parsed);
+      if(score>0){_vendorScores.set(v.name,{score,reason:matchReason});return{v,score,primaryScore,catScore,nameScore,coverage:coverage==null?1:coverage};}
       return null;
     }).filter(Boolean);
-    // Checkpoint 1: serviceTypes match; Checkpoint 2: sub/category; Checkpoint 3: vendor name
-    const ch1=allScored.filter(x=>x.primaryScore>0);
-    const ch2=allScored.filter(x=>x.catScore>0);
-    const ch3=allScored.filter(x=>x.nameScore>0);
-    const useSet=ch1.length>0?ch1:ch2.length>0?ch2:ch3;
+    // Multi-word queries are read together: vendors matching ALL words win. If none do,
+    // accept only vendors that still explain most of the query — never blind word hits.
+    const full=allScored.filter(x=>x.coverage>=0.999);
+    const pool=full.length?full:allScored.filter(x=>x.coverage>=0.6);
+    // Evidence tiers — a vendor is "related" only at the strongest tier available:
+    //  1) actual service details / synonyms  2) sub-category or category  3) vendor name
+    const t1=pool.filter(x=>x.primaryScore>0);
+    const t2=pool.filter(x=>x.primaryScore===0&&x.catScore>0);
+    let useSet=t1.length?t1:t2.length?t2:pool;
     useSet.sort((a,b)=>b.score-a.score||(eo[b.v.engagementLevel]||0)-(eo[a.v.engagementLevel]||0));
+    // Drop the weak tail so only genuinely related vendors are offered
+    if(useSet.length>1){const floor=useSet[0].score*0.35;useSet=useSet.filter(x=>x.score>=floor);}
     l=useSet.map(x=>x.v);
   }
 
@@ -1734,20 +1852,36 @@ function exportCSV(){
 // ═══════════════════════════════════════════════════════════════════════════
 //  SHARE / MODALS
 // ═══════════════════════════════════════════════════════════════════════════
+const SHARE_URL   = 'https://aastha-2026.github.io/vendor-intelligence-dashboard/Vendor%20bucketing/index.html';
+const SHARE_TITLE = 'WMGTS SSP Vendor Intelligence Tool';
+
 function openShareModal(){
-  document.getElementById('shareUrl').value='https://aastha-2026.github.io/vendor-intelligence-dashboard/Vendor%20bucketing/';
+  document.getElementById('shareUrl').value=SHARE_URL;
   document.getElementById('shareModal').classList.add('open');
 }
 function closeShareModal(){document.getElementById('shareModal').classList.remove('open');}
 function openRFPHelp(){document.getElementById('rfpHelpModal').classList.add('open');}
 function closeRFPHelp(){document.getElementById('rfpHelpModal').classList.remove('open');}
 function copyShareLink(){
-  var ta=document.getElementById('shareUrl');ta.select();
-  try{navigator.clipboard.writeText(ta.value).catch(function(){document.execCommand('copy');});}
-  catch(e){document.execCommand('copy');}
-  closeShareModal();
-  var toast=document.getElementById('shareToast');toast.classList.add('show');
-  setTimeout(function(){toast.classList.remove('show');},2800);
+  // Copy both flavours so Teams/Outlook paste a titled hyperlink, plain text falls back to the URL
+  const html='<a href="'+SHARE_URL+'">'+SHARE_TITLE+'</a>';
+  const done=()=>{
+    closeShareModal();
+    const toast=document.getElementById('shareToast');toast.classList.add('show');
+    setTimeout(function(){toast.classList.remove('show');},2800);
+  };
+  const plainFallback=()=>{
+    const ta=document.getElementById('shareUrl');ta.select();
+    try{navigator.clipboard.writeText(SHARE_URL).catch(function(){document.execCommand('copy');});}
+    catch(e){document.execCommand('copy');}
+    done();
+  };
+  if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
+    navigator.clipboard.write([new ClipboardItem({
+      'text/html': new Blob([html],{type:'text/html'}),
+      'text/plain':new Blob([SHARE_URL],{type:'text/plain'})
+    })]).then(done).catch(plainFallback);
+  } else plainFallback();
 }
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeShareModal();closeRFPHelp();}});
 </script>
