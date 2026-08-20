@@ -457,7 +457,7 @@
     "totalPOValue": 228700936.0,
     "engagementLevel": "Strategic Partner",
     "tier": "HIGH",
-    "serviceTypes": "Tech Contingent workers, Managed outcome, SOW, POD,contract hiring, T&M, MO",
+    "serviceTypes": "Tech Contingent workers, Managed outcome, SOW, POD,contract hiring, T&M, MO.",
     "procurementCategory": "Workforce Management",
     "procurementSubCategory": "Workforce, HR & Professional Services",
     "website": "https://www.nagarro.com/",
@@ -11625,7 +11625,7 @@
     "department": "Human Resources"
   },
   {
-    "name": "TATA AIG general insurance co ltd",
+    "name": "Tata AIG general insurance co ltd",
     "ids": "1460322135",
     "orderCount": 0,
     "currency": "INR",
