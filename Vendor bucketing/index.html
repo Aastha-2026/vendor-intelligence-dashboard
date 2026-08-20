@@ -860,7 +860,9 @@ function showSugg(q) {
   }
 
   // ── Top scored vendors ──
-  const scored=VENDORS.map(v=>{
+  const exclusive=exclusiveNameHits(VENDORS,parsed);
+  const scored=(exclusive||VENDORS).map(v=>{
+    if(exclusive) return {v,score:W.NAME_EXACT,coverage:1,matchReason:'Vendor name'};
     const{score,coverage,matchReason}=scoreVendor(v,parsed);
     return score>0?{v,score,coverage:coverage==null?1:coverage,matchReason}:null;
   }).filter(Boolean);
@@ -1718,6 +1720,14 @@ function getFiltered(){
     const parsed=parseQuery(st.q);
     _lastParsed=parsed;
     _vendorScores.clear();
+    // A distinctive company name (a word that exists nowhere in the service or category
+    // data) is a lookup for that vendor — return it alone rather than its whole category.
+    const nameHits=exclusiveNameHits(l,parsed);
+    if(nameHits){
+      _lastExpanded=[];
+      nameHits.forEach(v=>_vendorScores.set(v.name,{score:W.NAME_EXACT,reason:'Vendor name'}));
+      return applyChips(nameHits);
+    }
     _lastExpanded=expandTerms(parsed.freeTerms);
     const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
     const allScored=l.map(v=>{
@@ -1740,11 +1750,32 @@ function getFiltered(){
     l=useSet.map(x=>x.v);
   }
 
+  return applyChips(l);
+}
+
+// Engagement / spend-tier chips, applied after any search has narrowed the list
+function applyChips(l){
   const ea=['sp','rv','ot'].filter(f=>st.flt.has(f));
   if(ea.length){const m={sp:'Strategic Partner',rv:'Repeat Vendor',ot:'One-Time Vendor'};l=l.filter(v=>ea.some(f=>v.engagementLevel===m[f]));}
   const ta=['hi','md','lo'].filter(f=>st.flt.has(f));
   if(ta.length){const m={hi:'HIGH',md:'MEDIUM',lo:'LOW'};l=l.filter(v=>ta.some(f=>v.tier===m[f]));}
   return l;
+}
+
+// A query is a vendor lookup when every word is part of a vendor's name and none of
+// those words appear anywhere in the service / category data (so "Giftabled" is a
+// company, while "gift" or "catering" remain service searches).
+function exclusiveNameHits(list,parsed){
+  const terms=(parsed.exact&&parsed.exact.length)?parsed.exact:[parsed.freeStr];
+  const phrase=terms.join(' ').trim();
+  if(!phrase||phrase.length<4) return null;
+  const words=phrase.split(' ').filter(Boolean);
+  if(words.some(w=>_vocab.has(w)||GENERIC_TERMS.has(w))) return null;
+  const hits=list.filter(v=>{
+    const d=_searchDocs.get(v.name);
+    return d&&hasWholePhrase(d.name,phrase);
+  });
+  return hits.length?hits:null;
 }
 
 
