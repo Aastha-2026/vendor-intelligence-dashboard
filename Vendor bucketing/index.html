@@ -212,6 +212,8 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .mr-link{display:flex;align-items:center;gap:6px;padding:7px 12px;background:#fff;border:1px solid var(--mr-border);border-radius:6px;text-decoration:none;font-size:11px;font-weight:600;color:var(--g7);transition:all .15s}
 .mr-link:hover{background:var(--wy);border-color:var(--wyd);color:#1D1D1D}
 .mr-link-ico{font-size:14px}
+.mr-prompt-lbl{font-size:10px;font-weight:700;color:var(--mr-c);margin-bottom:4px}
+.mr-prompt{background:#fff;border:1px solid var(--mr-border);border-radius:6px;padding:8px 11px;font-size:11px;color:#5D4037;line-height:1.5;margin-bottom:12px}
 .mr-disclaimer{font-size:10px;color:var(--g5);margin-top:10px;font-style:italic}
 
 /* EMPTY */
@@ -345,7 +347,7 @@ mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-wei
 
 <div class="srch-sec">
   <div class="srch-lbl">&#128269; Find All Vendors for a Service or Product</div>
-  <div class="srch-hint">All matching vendors from our database are shown &mdash; select any to add to RFP for competitive bidding</div>
+  <div class="srch-hint">All matching vendors from our database are shown &mdash; select any to add to RFP for competitive bidding. Tip: wrap a term in quotes (e.g. &ldquo;cctv&rdquo;) to match that exact word only, without synonyms.</div>
   <div class="srch-wrap">
     <input class="srch-inp" id="sInp" type="text" placeholder="e.g. Laptop, AV Installation, Legal Counsel, Catering, Security cameras, Modular Furniture&#8230;" autocomplete="off" spellcheck="false">
     <button class="srch-clr" id="sClr" onclick="clearSearch()" title="Clear">&#10005;</button>
@@ -419,6 +421,8 @@ mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-wei
     <div class="mr-panel" id="mrPanel">
       <div class="mr-title">&#127760; Discover Additional Vendors &mdash; Market Research Only</div>
       <div class="mr-desc">&#9888;&#65039; <strong>The vendors below are NOT in our empaneled database.</strong> These links search external markets for &ldquo;<span id="mrQuery"></span>&rdquo; service providers in India. Use to identify new vendors to invite to your RFP &mdash; conduct due diligence before onboarding.</div>
+      <div class="mr-prompt-lbl">&#129302; Search prompt sent to these sites &mdash; scoped to enterprise-scale suppliers:</div>
+      <div class="mr-prompt" id="mrPrompt"></div>
       <div class="mr-links" id="mrLinks"></div>
       <div class="mr-disclaimer">&#128204; Market research results are external and unvetted. Any new vendor must go through Walmart&rsquo;s standard vendor onboarding and compliance process before engagement.</div>
     </div>
@@ -514,7 +518,7 @@ mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-wei
 // ═══════════════════════════════════════════════════════════════════════════
 
 const DATA_SRC = './vendors.json';          // relative path on GitHub Pages
-const AUTO_REFRESH_MS = 5 * 60 * 1000;     // auto-refresh every 5 minutes
+const AUTO_REFRESH_MS = 60 * 1000;         // re-check vendors.json every minute
 
 let VENDORS = [];           // populated asynchronously by loadVendors()
 let autoRefreshTimer = null;
@@ -555,15 +559,29 @@ const CUR_FLAG = {
 };
 
 // Market research external links (shown when search finds no empaneled match)
+// {p} = full enterprise-scale prompt (natural-language engines)
+// {k} = concise keyword phrase (marketplace / tender portals that reject long queries)
 const MR_SOURCES = {
   default:[
-    {name:'Google',  ico:'\u{1F50D}',url:'https://www.google.com/search?q={q}+vendor+India+procurement+service+provider'},
-    {name:'IndiaMART',ico:'\u{1F6CD}\uFE0F',url:'https://www.indiamart.com/search.mp?ss={q}'},
-    {name:'LinkedIn',ico:'\u{1F465}',url:'https://www.linkedin.com/search/results/companies/?keywords={q}+India'},
-    {name:'TradeIndia',ico:'\u{1F4CB}',url:'https://www.tradeindia.com/search.html?search={q}'},
-    {name:'GeM Portal',ico:'\u{1F1EE}\u{1F1F3}',url:'https://bidplus.gem.gov.in/all-bids?searchedBid={q}'},
+    {name:'Google',  ico:'\u{1F50D}',url:'https://www.google.com/search?q={p}'},
+    {name:'IndiaMART',ico:'\u{1F6CD}\uFE0F',url:'https://www.indiamart.com/search.mp?ss={k}'},
+    {name:'LinkedIn',ico:'\u{1F465}',url:'https://www.linkedin.com/search/results/companies/?keywords={k}'},
+    {name:'TradeIndia',ico:'\u{1F4CB}',url:'https://www.tradeindia.com/search.html?search={k}'},
+    {name:'GeM Portal',ico:'\u{1F1EE}\u{1F1F3}',url:'https://bidplus.gem.gov.in/all-bids?searchedBid={k}'},
   ]
 };
+
+// Builds the search text sent to external sites: scoped to India and to suppliers
+// capable of serving a corporate of Walmart's scale.
+function mrPrompt(q) {
+  const term = q.replace(/["\u201C\u201D]/g,'').trim();
+  return {
+    prompt: term + ' vendors and suppliers in India for large corporate enterprises'
+      + ' \u2014 B2B companies delivering ' + term + ' to multinational offices with 10,000+ employees,'
+      + ' GST registered, Bengaluru or Chennai, with corporate client references',
+    keyword: term + ' corporate supplier India'
+  };
+}
 
 let st = {q:'', flt:new Set(), cat:'', cur:[], fsi:-1, rfp:new Set(), concept:''};
 
@@ -610,24 +628,10 @@ function processVendors(raw) {
 async function loadVendors(isRefresh) {
   setLoading(true, isRefresh ? 'Refreshing vendor data\u2026' : 'Loading vendor data\u2026');
 
-  // On initial load: use inline data from vendors-data.js (works on file://).
-  // On REFRESH via file:// protocol: fetch() is blocked, so re-render from in-memory data.
+  // vendors.json is always the source of truth. The inline copy in vendors-data.js is
+  // only a fallback for file:// use or when the network request fails.
   const isFileProtocol = location.protocol === 'file:';
-  if (!isRefresh && window.__VENDOR_DATA__ && window.__VENDOR_DATA__.length) {
-    try {
-      processVendors(window.__VENDOR_DATA__);
-      updateRefreshTs();
-      buildCats();
-      renderVendors();
-      setupSearch();
-    } finally {
-      setLoading(false);
-    }
-    return;
-  }
-
-  if (isRefresh && isFileProtocol) {
-    // Can't fetch on file://, just re-render what we have
+  if (isFileProtocol) {
     try {
       const data = window.__VENDOR_DATA__;
       if (data && data.length) {
@@ -635,7 +639,8 @@ async function loadVendors(isRefresh) {
         updateRefreshTs();
         buildCats();
         renderVendors();
-        showToast('\u2713 Data is current \u2014 ' + VENDORS.length + ' vendors');
+        if (!isRefresh) setupSearch();
+        if (isRefresh) showToast('\u2713 Data is current \u2014 ' + VENDORS.length + ' vendors');
       }
     } finally {
       setLoading(false);
@@ -645,7 +650,7 @@ async function loadVendors(isRefresh) {
 
   const url = DATA_SRC + '?v=' + Date.now();
   try {
-    const res = await fetch(url, {cache:'no-store'});
+    const res = await fetch(url, {cache:'no-store', headers:{'Cache-Control':'no-cache','Pragma':'no-cache'}});
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (!Array.isArray(data) || data.length === 0) throw new Error('Empty or invalid dataset');
@@ -672,6 +677,13 @@ async function loadVendors(isRefresh) {
       } else {
         showToast('\u26A0 Refresh failed: ' + err.message, true);
       }
+    } else if (window.__VENDOR_DATA__ && window.__VENDOR_DATA__.length) {
+      processVendors(window.__VENDOR_DATA__);
+      updateRefreshTs();
+      buildCats();
+      renderVendors();
+      setupSearch();
+      showToast('\u26A0 Live data unavailable \u2014 showing last published copy', true);
     } else {
       const grid = document.getElementById('vgrid');
       if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--hc)">'
@@ -802,12 +814,15 @@ function updateBanner(q) {
   showMRPanel(q);
 }
 function showMRPanel(q) {
+  const {prompt,keyword}=mrPrompt(q);
   const links=MR_SOURCES.default.map(s=>{
-    const url=s.url.replace('{q}',encodeURIComponent(q));
+    const url=s.url.replace('{p}',encodeURIComponent(prompt)).replace('{k}',encodeURIComponent(keyword));
     return '<a class="mr-link" href="'+url+'" target="_blank" rel="noopener"><span class="mr-link-ico">'+s.ico+'</span>'+s.name+'</a>';
   }).join('');
   document.getElementById('mrLinks').innerHTML=links;
   document.getElementById('mrQuery').textContent=q;
+  const pv=document.getElementById('mrPrompt');
+  if(pv) pv.textContent=prompt;
   document.getElementById('mrPanel').classList.add('show');
 }
 function clearSearch(){st.q='';st.concept='';setQ('');hideSugg();document.getElementById('sBanner').classList.remove('show');document.getElementById('mrPanel').classList.remove('show');renderVendors();}
@@ -912,7 +927,7 @@ function semanticSearch(label){
   st.concept=SEARCH_CONCEPTS.some(c=>c.label===label)?label:'';
   st.q=label; setQ(label); hideSugg(); renderVendors(); updateBanner(label);
 }
-function hlT(t,q){if(!q)return t;return t.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');}
+function hlT(t,q){if(!q)return t;q=q.replace(/[“”"']/g,'').trim();if(!q)return t;return t.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi'),'<mark>$1</mark>');}
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  SERVICE FILTER (removes fee/tax/logistics-only line items)
@@ -1331,9 +1346,16 @@ function parseQuery(raw) {
     if (val) scopes[key] = val;
     remaining = remaining.replace(m[0], ' ');
   }
+  // Quoted text is taken literally — no synonyms, stemming or fuzzy matching
+  const exact = [];
+  remaining = remaining.replace(/[“”"']([^“”"']+)[“”"']/g, (_m, phrase) => {
+    const n = normalizeSearchText(phrase);
+    if (n) exact.push(n);
+    return ' ';
+  });
   const freeTerms = remaining.trim().split(/\s+/)
     .map(normalizeSearchText).filter(t => t.length > 0);
-  return { scopes, freeTerms, freeStr: freeTerms.join(' ') };
+  return { scopes, exact, freeTerms, freeStr: freeTerms.join(' ') };
 }
 
 // Whole-word phrase containment ("event" matches "event management", not "prevention")
@@ -1397,7 +1419,7 @@ function expandTerms(terms) {
 function scoreVendor(v, parsedQuery) {
   const doc = _searchDocs.get(v.name);
   if (!doc) return { score: 0, matchReason: '' };
-  const { scopes, freeTerms, freeStr } = parsedQuery;
+  const { scopes, exact, freeTerms, freeStr } = parsedQuery;
   let score = 0, reason = '';
 
   // ── Scoped field matching (strict: mismatch = 0) ──
@@ -1449,6 +1471,27 @@ function scoreVendor(v, parsedQuery) {
     if (!doc.svcs.includes(sv)) return { score: 0, matchReason: '' };
     score += W.SVC_PHRASE; reason = 'service detail';
   }
+  // ── Quoted phrases: literal whole-word match only, every phrase must be present ──
+  if (exact && exact.length) {
+    let eP = 0, eC = 0, eN = 0;
+    for (const ph of exact) {
+      const inSvc = hasWholePhrase(doc.svcs, ph);
+      const inSub = hasWholePhrase(doc.sub,  ph);
+      const inCat = hasWholePhrase(doc.cat,  ph);
+      const inNam = hasWholePhrase(doc.name, ph);
+      if (!inSvc && !inSub && !inCat && !inNam) return { score: 0, matchReason: '' };
+      if (inSvc) eP = Math.max(eP, W.SVC_PHRASE);
+      if (inSub) eC = Math.max(eC, W.SUBCAT_EXACT);
+      if (inCat) eC = Math.max(eC, W.CAT_EXACT);
+      if (inNam) eN = Math.max(eN, W.NAME_EXACT);
+    }
+    const eBase = (eP || eC) ? eP + 0.6 * eC : eN;
+    return {
+      score: score + Math.round(eBase), primaryScore: eP, catScore: eC, nameScore: eN, coverage: 1,
+      matchReason: '\u201C' + exact.join('\u201D \u201C') + '\u201D exact match'
+    };
+  }
+
   if (!freeTerms.length) return { score: score > 0 ? score + 10 : 0, matchReason: reason };
 
   // ── Numeric query ──
@@ -1650,7 +1693,12 @@ function renderVendors(){
   if(sort==='ord') l.sort((a,b)=>b.orderCount-a.orderCount);
   else if(sort==='az') l.sort((a,b)=>a.name.localeCompare(b.name));
   else if(sort==='za') l.sort((a,b)=>b.name.localeCompare(a.name));
-  else{const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};l.sort((a,b)=>(eo[b.engagementLevel]||0)-(eo[a.engagementLevel]||0)||b.orderCount-a.orderCount);}
+  else{
+    // Stack rank: Strategic Partner → Repeat → One-Time → Dormant; relevance breaks ties
+    const eo={'Strategic Partner':3,'Repeat Vendor':2,'One-Time Vendor':1,'Dormant Vendor':0};
+    const rel=v=>{const s=_vendorScores.get(v.name);return s?s.score:0;};
+    l.sort((a,b)=>(eo[b.engagementLevel]||0)-(eo[a.engagementLevel]||0)||rel(b)-rel(a)||b.orderCount-a.orderCount);
+  }
   st.cur=l;
   const sp=l.filter(v=>v.engagementLevel==='Strategic Partner').length;
   const rv=l.filter(v=>v.engagementLevel==='Repeat Vendor').length;

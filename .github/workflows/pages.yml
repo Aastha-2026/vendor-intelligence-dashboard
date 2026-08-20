@@ -22,6 +22,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Rebuild vendor data from master Excel
+        run: python tools/build_vendors.py
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
