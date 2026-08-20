@@ -6,7 +6,7 @@ Reads the "Vendor Bucketing" sheet and writes:
 
 Stdlib only: an .xlsx is a zip of XML, so no third-party packages are needed.
 
-Usage:  python tools/build_vendors.py
+Usage:  python tools/build_vendors.py [path-to-workbook]
 """
 
 import html
@@ -94,10 +94,11 @@ def to_number(raw, as_int):
 
 
 def main():
-    if not os.path.exists(XLSX):
-        raise SystemExit('Workbook not found: %s' % XLSX)
+    xlsx = sys.argv[1] if len(sys.argv) > 1 else XLSX
+    if not os.path.exists(xlsx):
+        raise SystemExit('Workbook not found: %s' % xlsx)
 
-    z = zipfile.ZipFile(XLSX)
+    z = zipfile.ZipFile(xlsx)
     shared = load_shared_strings(z)
     rows = parse_rows(z, find_sheet_path(z, SHEET_NAME), shared)
 
@@ -126,7 +127,9 @@ def main():
     if not vendors:
         raise SystemExit('No vendor rows found \u2014 aborting so the live data is not wiped.')
 
-    stamp = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    # Stamp from the workbook's own mtime, so identical input yields identical
+    # output and unchanged data never produces a spurious commit.
+    stamp = datetime.fromtimestamp(os.path.getmtime(xlsx), timezone.utc).isoformat(timespec='seconds')
     json_path = os.path.join(DATA_DIR, 'vendors.json')
     js_path = os.path.join(DATA_DIR, 'vendors-data.js')
 
@@ -135,7 +138,7 @@ def main():
 
     with open(js_path, 'w', encoding='utf-8') as f:
         f.write('/* Auto-generated from %s on %s \u2014 do not edit by hand */\n'
-                % (os.path.basename(XLSX), stamp))
+                % (os.path.basename(xlsx), stamp))
         f.write('window.__VENDOR_DATA__ = ')
         json.dump(vendors, f, ensure_ascii=False, separators=(',', ':'))
         f.write(';\n')
