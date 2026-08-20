@@ -893,7 +893,24 @@ function showSugg(q) {
   }
 
   // ── "Did you mean?" for near-miss queries ──
-  if(!topV.length&&freeTerms.length){
+  if(!topV.length&&(freeTerms.length||(parsed.exact&&parsed.exact.length))){
+    // Closest vendor names first — a misspelt company name is the common case
+    const near=closestVendorNames(parsed,5);
+    if(near.length){
+      h+='<div class="sugg-hd">&#128269; No exact vendor \u2014 did you mean?</div>';
+      near.forEach(({v,sim})=>{
+        const ec=ECL[v.engagementLevel]||'ot';
+        const sn=v.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+        h+='<div class="sugg-row" onclick="selVend(\''+sn+'\')">'
+          +'<span class="sugg-ico">&#127968;</span>'
+          +'<div class="sugg-info">'
+            +'<div class="sugg-nm">'+(v._displayName||v.name)+'</div>'
+            +'<div class="sugg-reason">Closest name match \u00B7 ~'+Math.round(sim*100)+'% similar</div>'
+            +'<div class="sugg-mt">'+(v.procurementCategory||'')+' \u00B7 '+v.orderCount+' orders</div>'
+          +'</div>'
+          +'<span class="ebdg '+ec+'" style="font-size:9px">'+(ec==='sp'?'\u2B50 SP':ec==='rv'?'\uD83D\uDD01 RV':'\uD83D\uDD39 OT')+'</span></div>';
+      });
+    }
     const dym=SEARCH_CONCEPTS.map(concept=>{
       const b=freeTerms.reduce((mx,tok)=>Math.max(mx,...concept.terms.map(t=>tokenSim(tok,normalizeSearchText(t)))),0);
       return{concept,best:b};
@@ -1282,6 +1299,7 @@ function buildSearchIndex() {
       subW:  new Set(sub.split(' ')),
       svcW:  new Set(svcs.split(' ')),
       nameW: new Set(name.split(' ')),
+      nameWords: name.split(' ').filter(w => w.length >= 3),
       // Unique words used by the fuzzy/typo pass — precomputed so scoring stays fast
       words,
       cur:    normalizeSearchText(v.currency),
@@ -1333,6 +1351,41 @@ const GENERIC_TERMS = new Set(['service','services','servicing','supply','suppli
   'agency','agencies','firm','solution','solutions','management','support','india','indian',
   'corporate','office','best','top','new','need','needed','require','required','requirement',
   'for','and','the','of','in','on','with','a','an','to']);
+
+// How closely a query resembles a vendor's name (0–1) — powers misspelt-name recovery.
+// Every meaningful word must be accounted for, so "Zyxwv Corp" does not match
+// "Microsoft Corporation" on the strength of "corp" alone.
+function nameSimilarity(doc, freeStr, qTokens) {
+  if (!doc || !freeStr) return 0;
+  const words = qTokens.filter(t => t.length >= 3 && !GENERIC_TERMS.has(t));
+  if (!words.length) return 0;
+  let total = 0;
+  for (const tok of words) {
+    let best = 0;
+    for (const w of doc.nameWords) {
+      const s = tokenSim(tok, w);
+      if (s > best) best = s;
+    }
+    total += best;
+  }
+  return Math.max(tokenSim(freeStr, doc.name), total / words.length);
+}
+
+// Vendors whose names most resemble the query — used for "Did you mean?"
+function closestVendorNames(parsed, limit) {
+  const terms = (parsed.exact && parsed.exact.length)
+    ? parsed.exact.join(' ').split(' ')
+    : parsed.freeTerms;
+  const str = terms.join(' ');
+  if (!str || str.length < 3) return [];
+  const out = [];
+  for (const v of VENDORS) {
+    const doc = _searchDocs.get(v.name);
+    const sim = nameSimilarity(doc, str, terms);
+    if (sim >= 0.6) out.push({ v, sim });
+  }
+  return out.sort((a, b) => b.sim - a.sim).slice(0, limit || 5);
+}
 
 // ── Parse scoped query (vendor:X, id:Y, category:"...", etc.) ─────────────────
 function parseQuery(raw) {
@@ -1583,6 +1636,17 @@ function scoreVendor(v, parsedQuery) {
 
   const hits = useIdx.filter(i => covered[i]).length;
   const coverage = useIdx.length ? hits / useIdx.length : 1;
+
+  // Nothing in this vendor's services or categories relates to the query, so treat it
+  // as a name lookup — this is what recovers a misspelt company name.
+  if (primaryScore === 0 && catScore === 0 && tokPrimary === 0 && tokCat === 0) {
+    const nsim = nameSimilarity(doc, freeStr, qTokens);
+    if (nsim >= 0.75) {
+      const ns = Math.round(nsim * W.NAME_EXACT);
+      return { score: score + ns, primaryScore: 0, catScore: 0, nameScore: ns, coverage: 1,
+               matchReason: nsim >= 0.99 ? 'Vendor name exact' : 'Closest vendor name match' };
+    }
+  }
   if (!coverage) return { score: 0, matchReason: '' };
 
   // Multi-word queries are read together: reward vendors covering every word
