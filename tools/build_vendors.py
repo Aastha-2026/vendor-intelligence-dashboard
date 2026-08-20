@@ -9,13 +9,13 @@ Stdlib only: an .xlsx is a zip of XML, so no third-party packages are needed.
 Usage:  python tools/build_vendors.py [path-to-workbook]
 """
 
+import hashlib
 import html
 import json
 import os
 import re
 import sys
 import zipfile
-from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT, 'Vendor bucketing')
@@ -127,22 +127,22 @@ def main():
     if not vendors:
         raise SystemExit('No vendor rows found \u2014 aborting so the live data is not wiped.')
 
-    # Stamp from the workbook's own mtime, so identical input yields identical
-    # output and unchanged data never produces a spurious commit.
-    stamp = datetime.fromtimestamp(os.path.getmtime(xlsx), timezone.utc).isoformat(timespec='seconds')
     json_path = os.path.join(DATA_DIR, 'vendors.json')
     js_path = os.path.join(DATA_DIR, 'vendors-data.js')
 
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(vendors, f, indent=2, ensure_ascii=False)
 
+    compact = json.dumps(vendors, ensure_ascii=False, separators=(',', ':'))
+    # Fingerprint the data, not the clock: re-saving the workbook without changing
+    # any vendor row must produce byte-identical output (no spurious commits).
+    digest = hashlib.sha256(compact.encode('utf-8')).hexdigest()[:12]
+
     with open(js_path, 'w', encoding='utf-8') as f:
-        f.write('/* Auto-generated from %s on %s \u2014 do not edit by hand */\n'
-                % (os.path.basename(xlsx), stamp))
-        f.write('window.__VENDOR_DATA__ = ')
-        json.dump(vendors, f, ensure_ascii=False, separators=(',', ':'))
-        f.write(';\n')
-        f.write('window.__VENDOR_DATA_BUILT__ = %s;\n' % json.dumps(stamp))
+        f.write('/* Auto-generated from %s \u2014 do not edit by hand */\n'
+                % os.path.basename(xlsx))
+        f.write('window.__VENDOR_DATA__ = ' + compact + ';\n')
+        f.write('window.__VENDOR_DATA_BUILD__ = %s;\n' % json.dumps(digest))
 
     print('Wrote %d vendors' % len(vendors))
     print('  ' + json_path)

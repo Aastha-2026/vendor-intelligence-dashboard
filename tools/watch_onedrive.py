@@ -25,10 +25,17 @@ TRACKED = ['Vendor bucketing/Vendor Bucketing-Master list-Final.xlsx',
            'Vendor bucketing/vendors-data.js']
 
 POLL_SECONDS = 10
+LOG_FILE = os.path.join(ROOT, 'tools', 'sync.log')
 
 
 def log(msg):
-    print('[%s] %s' % (time.strftime('%H:%M:%S'), msg), flush=True)
+    line = '[%s] %s' % (time.strftime('%Y-%m-%d %H:%M:%S'), msg)
+    print(line, flush=True)
+    try:
+        with open(LOG_FILE, 'a', encoding='utf-8') as f:
+            f.write(line + '\n')
+    except OSError:
+        pass
 
 
 def git(*args, check=True):
