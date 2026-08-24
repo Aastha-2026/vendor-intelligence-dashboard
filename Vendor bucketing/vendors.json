@@ -5317,12 +5317,12 @@
     "totalPOValue": 705371.0,
     "engagementLevel": "One-Time Vendor",
     "tier": "MEDIUM",
-    "serviceTypes": "Card DesignTemplate Setup, Custom Printing of 3000 Walmart Cards; Custom Printing 3000 Walmart Cards,",
-    "procurementCategory": "Marketing & Merchandise",
-    "procurementSubCategory": "Corporate Merchandise",
+    "serviceTypes": "ID and Data security solutions, Identity Card Design Template Setup, Custom Printing of 3000 Walmart Identity Centric Digital Cards, IAM, Data security,Electronic and digital signing, Identity verification",
+    "procurementCategory": "IT & Digital",
+    "procurementSubCategory": "IT Hardware, AV & End-User Devices",
     "website": "https://www.entrust.com/",
     "msme": "MSME Status -TBC",
-    "department": "Multiple Department"
+    "department": "ADE"
   },
   {
     "name": "Kp actuaries and consultants",
@@ -6397,7 +6397,7 @@
     "totalPOValue": 98913.0,
     "engagementLevel": "Repeat Vendor",
     "tier": "LOW",
-    "serviceTypes": "Printer and Accessories, Service charges, Accessories,",
+    "serviceTypes": "Printer and Accessories, Service charges, Accessories, ID and Data security solutions, Identity Card Design Template Setup, IAM, Data security,Electronic and digital signing, Identity verification",
     "procurementCategory": "IT & Digital",
     "procurementSubCategory": "IT Hardware, AV & End-User Devices",
     "website": "https://www.entrust.com/",
