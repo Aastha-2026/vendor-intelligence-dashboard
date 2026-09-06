@@ -29,12 +29,12 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 
 /* HEADER */
 .hdr{background:var(--wb);color:#fff;padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300;box-shadow:0 2px 10px rgba(0,0,0,.25)}
-.hdr-l{display:flex;align-items:center;gap:12px;flex:1;min-width:0}
-.wm-logo{color:#fff;font-size:22px;font-weight:700;letter-spacing:-.8px;line-height:1;flex-shrink:0}
-.hdr-l>div:last-child{min-width:0}
-.hdr-title{font-size:16px;font-weight:700;letter-spacing:-.2px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hdr-sub{font-size:10px;opacity:.75;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hdr-r{display:flex;align-items:center;gap:8px;font-size:11px;flex-shrink:0}
+.hdr-l{display:flex;align-items:center;gap:12px}
+.wm-spark{width:28px;height:28px;display:block;flex-shrink:0}
+.wm-spark use{fill:var(--wy)}
+.hdr-title{font-size:16px;font-weight:700;letter-spacing:-.2px;line-height:1.2}
+.hdr-sub{font-size:10px;opacity:.75;margin-top:1px}
+.hdr-r{display:flex;align-items:center;gap:8px;font-size:11px}
 .hdr-chip{background:var(--wy);color:#1D1D1D;padding:3px 9px;border-radius:20px;font-weight:700;font-size:10px}.share-btn{background:rgba(255,255,255,.18);color:#fff;border:1.5px solid rgba(255,255,255,.5);padding:4px 12px;border-radius:20px;font-weight:700;font-size:10px;cursor:pointer;transition:all .15s;margin-left:8px}.share-btn:hover{background:rgba(255,255,255,.32);border-color:#fff}.share-toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(60px);background:#1D3557;color:#fff;padding:10px 22px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.25);z-index:9999;opacity:0;transition:all .35s;pointer-events:none}.share-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}.share-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center}.share-modal.open{display:flex}.share-box{background:#fff;border-radius:12px;padding:28px 32px;max-width:480px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.22)}.share-box h3{margin:0 0 6px;font-size:16px;color:var(--wb)}.share-box p{margin:0 0 16px;font-size:12px;color:#555}.share-url{width:100%;box-sizing:border-box;border:1.5px solid #ccc;border-radius:6px;padding:8px 10px;font-size:12px;color:#333;background:#f8f8f8;margin-bottom:12px;resize:none;height:56px}.share-actions{display:flex;gap:8px;justify-content:flex-end}.share-copy-btn{background:var(--wb);color:#fff;border:none;padding:8px 18px;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer}.share-copy-btn:hover{background:#005aa3}.share-cancel{background:#eee;color:#333;border:none;padding:8px 14px;border-radius:6px;font-size:12px;cursor:pointer}.share-steps{font-size:11px;color:#666;margin-top:10px;line-height:1.7}
 
 /* SEARCH */
@@ -287,7 +287,10 @@ mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-wei
 
 <header class="hdr">
   <div class="hdr-l">
-    <div class="wm-logo" aria-label="Walmart">Walmart</div>
+    <svg class="wm-spark" viewBox="0 0 100 100" role="img" aria-label="Walmart">
+      <defs><path id="wm-spark-ray" d="M50 8C52.4 8 54.3 9.9 54.3 12.3L52.3 33.5C52.2 34.9 51.2 36 50 36C48.8 36 47.8 34.9 47.7 33.5L45.7 12.3C45.7 9.9 47.6 8 50 8Z"/></defs>
+      <use href="#wm-spark-ray"/><use href="#wm-spark-ray" transform="rotate(60 50 50)"/><use href="#wm-spark-ray" transform="rotate(120 50 50)"/><use href="#wm-spark-ray" transform="rotate(180 50 50)"/><use href="#wm-spark-ray" transform="rotate(240 50 50)"/><use href="#wm-spark-ray" transform="rotate(300 50 50)"/>
+    </svg>
     <div>
       <div class="hdr-title">WALMART INDIA &mdash; Vendor Intelligence Dashboard</div>
       <div class="hdr-sub">Procurement | Empaneled Vendor Registry &middot; Bengaluru &amp; Chennai &middot; FY 2024&ndash;26</div>
