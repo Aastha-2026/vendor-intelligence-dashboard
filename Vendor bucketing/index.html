@@ -529,6 +529,9 @@ const AUTO_REFRESH_MS = 60 * 1000;         // re-check vendors.json every minute
 let VENDORS = [];           // populated asynchronously by loadVendors()
 let autoRefreshTimer = null;
 let mxOC = 1;               // max order count (for relative score bar)
+let mxLogPO = 1;            // max log(1+totalPOValue) across vendors (relative score bar)
+// Engagement-level weight for the composite Relative Engagement Score (0-1)
+const ENG_W = {'Strategic Partner':1,'Repeat Vendor':0.66,'One-Time Vendor':0.33,'Dormant Vendor':0};
 
 // ── Category icons for the restructured category list ──
 const CICO = {
@@ -626,6 +629,7 @@ function processVendors(raw) {
   VENDORS = raw.filter(v => v && v.name);
   VENDORS.forEach(v => { v._displayName = normName(v.name); });
   mxOC = Math.max(1, ...VENDORS.map(v => v.orderCount || 0));
+  mxLogPO = Math.max(1, ...VENDORS.map(v => Math.log1p(v.totalPOValue || 0)));
   st.cur = [...VENDORS];
   buildSearchIndex();
 }
@@ -1946,7 +1950,11 @@ function closeRFPMo(){document.getElementById('rfpMo').classList.remove('open');
 function openMo(nm){
   const v=VENDORS.find(x=>x.name===nm);if(!v)return;
   const tc=TCL[v.tier]||'lo';
-  const spPct=Math.round(Math.min(100,(v.orderCount/mxOC)*100));
+  // Composite Relative Engagement Score: 40% order volume + 40% log-scaled PO value + 20% engagement level
+  const ordN=mxOC>0?(v.orderCount||0)/mxOC:0;
+  const poN=mxLogPO>0?Math.log1p(v.totalPOValue||0)/mxLogPO:0;
+  const engW=ENG_W[v.engagementLevel]||0;
+  const spPct=Math.round(Math.min(100,(0.4*ordN+0.4*poN+0.2*engW)*100));
   const cur=v.currency||'INR'; const flag=CUR_FLAG[cur]||'';
   document.getElementById('moEng').textContent=ELB[v.engagementLevel]||v.engagementLevel;
   document.getElementById('moNm').textContent=v._displayName||v.name;
