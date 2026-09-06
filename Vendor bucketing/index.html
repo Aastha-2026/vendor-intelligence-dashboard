@@ -1087,15 +1087,19 @@ const SEARCH_CONCEPTS = [
               'design thinking','storytelling','communication','influence without',
               'posh training','first aid training'] },
   { label:'Contract Staffing',
-    terms:['staffing','recruitment','recruiting','hiring','contractor','contractors',
-           'contingent workforce','temporary staff','resource augmentation','manpower',
-           'talent sourcing','temp staff','contingent','freelance','contract resource',
+      terms:['contingent staffing','contingent workforce','contract staffing','contract workforce',
+        'contract hiring','contingent workers','contingent resources','contract resources',
+        'staffing','recruitment','recruiting','hiring','contractor','contractors',
+        'temporary staff','resource augmentation','manpower','talent sourcing','temp staff',
+        'contingent','freelance','contract resource',
            'msp','rpo','vendor staffing','talent acquisition','lateral hire',
            'campus hire','naps','nats','workforce'],
     cats:['Workforce Management'],
     subCats:['Workforce, HR & Professional Services'],
-    svcTerms:['talent acquisition','recruitment','staffing','contingent','msp','rpo',
-              'manpower','resource management','hiring','contract staffing'] },
+      svcTerms:['contingent staffing','contingent workforce','contract staffing','contract workforce',
+      'contract hiring','contingent workers','contingent resources','contract resources',
+      'talent acquisition','recruitment','staffing','contingent','msp','rpo',
+      'manpower','resource management','hiring'] },
   { label:'Travel',
     terms:['travel','flight','hotel','accommodation','room booking','lodging',
            'business travel','travel booking','travel service','corporate travel',
@@ -1358,7 +1362,7 @@ const GENERIC_TERMS = new Set(['service','services','servicing','supply','suppli
   'vendor','vendors','provider','providers','partner','partners','company','companies',
   'agency','agencies','firm','solution','solutions','management','support','india','indian',
   'corporate','office','best','top','new','need','needed','require','required','requirement',
-  'for','and','the','of','in','on','with','a','an','to']);
+  'for','and','or','the','of','in','on','with','a','an','to']);
 
 // How closely a query resembles a vendor's name (0–1) — powers misspelt-name recovery.
 // Every meaningful word must be accounted for, so "Zyxwv Corp" does not match
@@ -1446,6 +1450,12 @@ function expandTerms(terms) {
   if (_expandCache.has(cacheKey)) return _expandCache.get(cacheKey);
 
   const termStr = terms.join(' ');
+  const phraseCandidates = [termStr];
+  terms.forEach((term, index) => {
+    if (term !== 'or' || index < 2 || index === terms.length - 1) return;
+    phraseCandidates.push(terms.slice(0, index).join(' '));
+    phraseCandidates.push([...terms.slice(0, index - 1), ...terms.slice(index + 1)].join(' '));
+  });
   const coreTerms = terms.filter(t => !GENERIC_TERMS.has(t));
   const simTerms = coreTerms.length ? coreTerms : terms;
   const matched = [], seen = new Set();
@@ -1454,8 +1464,18 @@ function expandTerms(terms) {
     const normTerms = concept._normTerms || concept.terms.map(normalizeSearchText);
     const normWords = concept._normTermWords || normTerms.map(t => t.split(' ').filter(w => w.length >= 3));
     for (let ai = 0; ai < normTerms.length; ai++) {
+      if (phraseCandidates.some(phrase => hasWholePhrase(phrase, normTerms[ai]))) {
+        best = 1; matchedTerm = concept.terms[ai]; break;
+      }
+    }
+    if (best === 1) {
+      if (!seen.has(concept.label)) {
+        seen.add(concept.label); matched.push({ concept, sim: best, matchedTerm });
+      }
+      continue;
+    }
+    for (let ai = 0; ai < normTerms.length; ai++) {
       const a = normTerms[ai];
-      if (a.length >= 3 && hasWholePhrase(termStr, a)) { best = 1; matchedTerm = concept.terms[ai]; break; }
       for (const t of simTerms) {
         let s = tokenSim(t, a);
         if (s > best) { best = s; matchedTerm = concept.terms[ai]; }
