@@ -172,7 +172,7 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .vc-svcs-list{display:none;flex-wrap:wrap;gap:3px;padding-top:6px}
 .vc-svcs-list.svc-open{display:flex}
 .svc-chip{display:flex;align-items:center;gap:3px;background:#F0F7FF;color:var(--wd);font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--wm);line-height:1.4}
-.svc-chip::before{content:'âœ“';color:var(--sc);font-size:9px;font-weight:700}
+.svc-chip::before{content:'\2022';color:var(--sc);font-size:9px;font-weight:700}
 .svc-chip-more{background:var(--g1);color:var(--g5);font-size:10px;padding:2px 7px;border-radius:10px;border:1px solid var(--g3);cursor:pointer;font-style:italic}
 .svc-chip-more:hover{background:var(--wl);color:var(--wb);border-color:var(--wm)}
 
@@ -256,7 +256,7 @@ body{font-family:'Bogle','Segoe UI',system-ui,Arial,sans-serif;font-size:14px;co
 .mo-fv{font-size:13px;font-weight:600;color:var(--g7)}
 .svc-list{display:flex;flex-direction:column;gap:4px}
 .svc-it{display:flex;align-items:flex-start;gap:7px;padding:6px 9px;background:var(--g0);border-radius:5px;font-size:11px;color:var(--g7);line-height:1.4}
-.svc-it::before{content:'âœ“';color:var(--sc);font-weight:700;font-size:10px;flex-shrink:0;margin-top:1px}
+.svc-it::before{content:'\2022';color:var(--sc);font-weight:700;font-size:10px;flex-shrink:0;margin-top:1px}
 .mo-acts{display:flex;gap:9px;margin-top:18px;padding-top:13px;border-top:1px solid var(--g2)}
 .btn-p{flex:1;min-width:120px;padding:10px 13px;background:var(--wb);color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .btn-p:hover{background:var(--wd)}
@@ -333,20 +333,20 @@ mark{background:var(--wy);color:#1D1D1D;padding:0 1px;border-radius:2px;font-wei
     <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
       <div style="display:flex;align-items:flex-start;gap:10px;background:#F0F7FF;border-radius:8px;padding:10px 12px">
         <span style="font-size:20px;flex-shrink:0">&#9745;</span>
-        <div><b style="font-size:12px;color:#004F9A">Step 1 â€” Select vendors</b><br><span style="font-size:11px;color:#555">On any vendor card, tick the <b>Select for RFP</b> checkbox (top-right corner). Select as many vendors as needed.</span></div>
+        <div><b style="font-size:12px;color:#004F9A">Step 1 &#8226; Select vendors</b><br><span style="font-size:11px;color:#555">On any vendor card, tick the <b>Select for RFP</b> checkbox (top-right corner). Select as many vendors as needed.</span></div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:10px;background:#F0F7FF;border-radius:8px;padding:10px 12px">
         <span style="font-size:20px;flex-shrink:0">&#128196;</span>
-        <div><b style="font-size:12px;color:#004F9A">Step 2 â€” Generate template</b><br><span style="font-size:11px;color:#555">A blue bar appears at the bottom showing selected vendors. Click <b>Generate RFP Template</b> to create a pre-filled RFP document.</span></div>
+        <div><b style="font-size:12px;color:#004F9A">Step 2 &#8226; Generate template</b><br><span style="font-size:11px;color:#555">A blue bar appears at the bottom showing selected vendors. Click <b>Generate RFP Template</b> to create a pre-filled RFP document.</span></div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:10px;background:#F0F7FF;border-radius:8px;padding:10px 12px">
         <span style="font-size:20px;flex-shrink:0">&#128203;</span>
-        <div><b style="font-size:12px;color:#004F9A">Step 3 â€” Copy &amp; send</b><br><span style="font-size:11px;color:#555">Copy the generated RFP template and paste into Teams, Outlook, or Word to send to vendors for competitive bidding.</span></div>
+        <div><b style="font-size:12px;color:#004F9A">Step 3 &#8226; Copy &amp; send</b><br><span style="font-size:11px;color:#555">Copy the generated RFP template and paste into Teams, Outlook, or Word to send to vendors for competitive bidding.</span></div>
       </div>
     </div>
     <div class="share-actions">
       <button class="share-cancel" onclick="closeRFPHelp()">Close</button>
-      <button class="share-copy-btn" onclick="closeRFPHelp();document.querySelector('.content').scrollIntoView({behavior:'smooth'})">&#128202; Got it â€” Start selecting</button>
+      <button class="share-copy-btn" onclick="closeRFPHelp();document.querySelector('.content').scrollIntoView({behavior:'smooth'})">&#128202; Got it &#8226; Start selecting</button>
     </div>
   </div>
 </div>
